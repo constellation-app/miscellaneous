@@ -1,0 +1,8 @@
+Test漢鼎繁古印Test漢鼎繁古印 final
+漢鼎繁古印Test
+Example<type>
+سعدت بلقائك
+أسد عفيفة
+أسد عفيفة<type>
+أسد/ عفيفة / + 漢成龙 + 李连杰<person>
+Name = عفيف<attr>
