@@ -12,7 +12,11 @@ import java.awt.font.GlyphVector;
 import java.awt.font.TextAttribute;
 import java.awt.font.TextLayout;
 import java.text.AttributedCharacterIterator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.swing.JComponent;
 
@@ -98,6 +102,47 @@ public class GlyphsComponent extends JComponent {
     }
 
     /**
+     * Merge bounding boxes that overlap on the x axis.
+     * <p>
+     * This code feels a bit ugly. Have another look later.
+     *
+     * @param boxes A List<Rectangle> representing possibly overlapping glyph bounding boxes.
+     *
+     * @return A List<Rectangle> of non-overlapping bounding boxes.
+     */
+    private static List<Rectangle> mergeBoxes(final List<Rectangle> boxes) {
+        final List<Rectangle> merged = new ArrayList<>();
+        for(int i=boxes.size()-1;i>=0;) {
+            Rectangle curr = boxes.get(i--);
+            if(i==-1) {
+                merged.add(curr);
+                break;
+            }
+            while(i>=0) {
+                final Rectangle prev = boxes.get(i);
+                if((prev.x + prev.width) < curr.x) {
+                    merged.add(curr);
+                    break;
+                }
+                final int y = Math.min(prev.y, curr.y);
+                curr = new Rectangle(
+                    prev.x,
+                    y,
+                    Math.max(prev.x+prev.width, curr.x+curr.width)-prev.x,
+                    Math.max(prev.y+prev.height, curr.y+curr.height)-y
+                );
+                i--;
+                if(i==-1) {
+                    merged.add(curr);
+                    break;
+                }
+            }
+        }
+
+        return merged;
+    }
+
+    /**
      * Draw a String that may contain multiple directions and scripts.
      * <p>
      * This is not a general purpose text drawer. Instead, it caters to the
@@ -148,6 +193,30 @@ public class GlyphsComponent extends JComponent {
     //                System.out.printf("* %s %s\n", gv.getClass(), gv);
     //                System.out.printf("* numGlyphs %d\n", gv.getNumGlyphs());
 
+                // Iterate through the glyphs to get the bounding boxes.
+                //
+                final List<Rectangle> boxes = new ArrayList<>();
+                for(int glyphIx=0; glyphIx<gv.getNumGlyphs(); glyphIx++) {
+                    final int gc = gv.getGlyphCode(glyphIx);
+                    if(gc!=0) {
+                        final Rectangle gr = gv.getGlyphPixelBounds(glyphIx, frc, x, y0);
+                        if(gr.width>0) {
+                        System.out.printf("rec %s\n", gr);
+                        boxes.add(gr);
+                        }
+                    }
+                    else {
+                        System.out.printf("glyphcode %d\n", gc);
+                    }
+                }
+
+                // Sort them by x position.
+                //
+                Collections.sort(boxes, (Rectangle r0, Rectangle r1) -> r0.x - r1.x);
+
+                final List<Rectangle> merged = mergeBoxes(boxes);
+                System.out.printf("%s\n", merged);
+
                 if(drawRuns) {
                     final Rectangle r = gv.getPixelBounds(null, x, y0);
                     g2d.setColor(Color.RED);
@@ -171,6 +240,13 @@ public class GlyphsComponent extends JComponent {
                         else {
                             System.out.printf("glyphcode %d\n", gc);
                         }
+                    }
+                }
+
+                if(drawCombined) {
+                    g2d.setColor(Color.MAGENTA);
+                    for(final Rectangle r : merged) {
+                            g2d.drawRect(r.x, r.y, r.width, r.height);
                     }
                 }
 

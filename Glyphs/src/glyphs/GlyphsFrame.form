@@ -126,8 +126,8 @@
     </Component>
     <Component class="javax.swing.JCheckBox" name="cbCGlyphs">
       <Properties>
+        <Property name="selected" type="boolean" value="true"/>
         <Property name="text" type="java.lang.String" value="Combined glyphs"/>
-        <Property name="enabled" type="boolean" value="false"/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="cbCGlyphsActionPerformed"/>

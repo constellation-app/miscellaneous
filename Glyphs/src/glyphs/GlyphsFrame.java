@@ -86,8 +86,8 @@ public class GlyphsFrame extends JFrame {
             }
         });
 
+        cbCGlyphs.setSelected(true);
         cbCGlyphs.setText("Combined glyphs");
-        cbCGlyphs.setEnabled(false);
         cbCGlyphs.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cbCGlyphsActionPerformed(evt);
