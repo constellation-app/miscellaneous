@@ -12,10 +12,7 @@ import java.awt.font.GlyphVector;
 import java.awt.font.TextAttribute;
 import java.awt.font.TextLayout;
 import java.text.AttributedCharacterIterator;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javax.swing.JComponent;
 
@@ -100,247 +97,85 @@ public class GlyphsComponent extends JComponent {
         repaint();
     }
 
-    private static char codepointDirection(final int codepoint) {
-//        if(codepoint>32 && codepoint<128) {
-//            return 'L';
-//        }
-        final byte d = Character.getDirectionality(codepoint);
-
-        switch (d) {
-            case Character.DIRECTIONALITY_RIGHT_TO_LEFT:
-            case Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC:
-            case Character.DIRECTIONALITY_RIGHT_TO_LEFT_EMBEDDING:
-            case Character.DIRECTIONALITY_RIGHT_TO_LEFT_OVERRIDE:
-                return 'R';
-
-            case Character.DIRECTIONALITY_LEFT_TO_RIGHT:
-            case Character.DIRECTIONALITY_LEFT_TO_RIGHT_EMBEDDING:
-            case Character.DIRECTIONALITY_LEFT_TO_RIGHT_OVERRIDE:
-                return 'L';
-
-            default:
-                return 'U';
-        }
-    }
-
-    private static final class DirectionRuns {
-        final List<String> runs;
-        final boolean firstIsLTR;
-
-        DirectionRuns(final List<String> runs, final boolean firstIsLTR) {
-            this.runs = runs;
-            this.firstIsLTR = firstIsLTR;
-        }
-    }
-
     /**
-     * Find the beginnings and ends of runs of codepoints that have the same direction.
-     *
-     * @param text
-     * @return An int[] containing codepoint indexes of the beginning of each run.
-     */
-    private DirectionRuns getDirectionRuns(final String text) {
-        final int length = text.length();
-
-        char firstDir = ' ';
-        char currDir = ' ';
-        final ArrayList<String> runs = new ArrayList<>();
-
-        int start = 0;
-        for(int offset = 0; offset < length;) {
-            final int codepoint = text.codePointAt(offset);
-            final int cc = Character.charCount(codepoint);
-
-            final char dir;
-            final int cptype = Character.getType(codepoint);
-            /*codepoint==32*/
-            if((cptype==Character.SPACE_SEPARATOR || cptype==Character.NON_SPACING_MARK)) {
-                dir = currDir;
-            } else {
-                final char d = codepointDirection(codepoint);
-                dir = d!='R' ? 'L' : 'R';
-            }
-            System.out.printf("-- %d %d %c %d %s\n", offset, codepoint, dir, Character.getType(codepoint), Character.UnicodeBlock.of(codepoint));
-            if(dir!=currDir) {
-                if(firstDir==' ') {
-                    firstDir = dir;
-                } else {
-                    System.out.printf("CHDIR %s %s\n", start, offset);
-                    runs.add(text.substring(start, offset));
-                }
-                currDir = dir;
-                start = offset;
-            }
-
-            offset += cc;
-        }
-
-        // Add the end of the final run.
-        //
-        runs.add(text.substring(start, length));
-
-        if(firstDir=='R' || runs.size()>1) {
-            Collections.reverse(runs);
-            firstDir = currDir;
-        }
-
-        System.out.printf("* dir runs %d %c\n", runs.size(), firstDir);
-        runs.stream().forEach(s -> System.out.printf("* dir  run  %d %d [%s]\n", s.length(), s.codePointAt(0), s));
-//        System.out.printf("--\n");
-
-        return new DirectionRuns(runs, firstDir=='L');
-    }
-
-    private static int whichFont(final Font[] fonts, final int codepoint) {
-        for(int i=0; i<fonts.length; i++) {
-            if(fonts[i].canDisplay(codepoint)) {
-//                System.out.printf("-- %s %d\n", fonts[i].getName(), codepoint);
-                return i;
-            }
-        }
-
-        System.out.printf("**** Font not found for codepoint %d\n", codepoint);
-        return -1;
-    }
-
-    private static final class FontRun {
-        final String string;
-        final Font font;
-
-        FontRun(final String s, final Font f) {
-            this.string = s;
-            this.font = f;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("[[%s],%s]", string, font.getName());
-        }
-    }
-
-    /**
-     * Find the beginnings and ends of runs of codepoints that have the same font.
+     * Draw a String that may contain multiple directions and scripts.
      * <p>
-     * We don't use Font.canDisplayUpTo().
-     * Consider the string containing Chinese and English text "CCCEEECCC".
-     * A font such as Noto Sans CJK SC Regular contains both Chinese and Latin
-     * characters, so Font.CanDisplayUpTo() would consume the entire string.
-     * This is no good if we want to use a different font style for Latin characters.
-     * Therefore, we look at each individual character.
-     * Obviously this requires that specific fonts appear first in the font list.
-     *
-     * @param text
-     *
-     * @return A List<FontRun> font runs.
+     * This is not a general purpose text drawer. Instead, it caters to the
+     * kind of string that are likely to be found in a CONSTELLLATION label;
+     * short, lacking punctuation,but possibly containing multi-language characters.
+     * <p>
+     * A String is first broken up into sub-strings that consist of codepoints
+     * of the same direction. These sub-strings are further broken into
+     * sub-sub-strings that contain the same font. Each sub-sub-string can then
+     * be drawn using TextLayout.draw(), and the associated glyphs can be
+     * determined using Font.layoutGlyphVector().
+     * <p>
+     * The glyph images can then be drawn into an image buffer for use by OpenGL
+     * to draw node and connection labels. Some glyphs (such as those used in
+     * cursive Arabic script) will overlap: any overlapping glyphs will be
+     * treated as a unit.
+     * <p>
+     * Hashes of the glyph images are used to determine if the image has already
+     * been
+     * @param g2d
+     * @param line
+     * @param fonts
+     * @param x0
+     * @param y0
      */
-    private List<FontRun> getFontRuns(final String s, final Font[] fonts) {
-        final int length = s.length();
-
-        int currFontIx = -1;
-        int start = 0;
-        final ArrayList<FontRun> frs = new ArrayList<>();
-
-        for(int offset = 0; offset < length;) {
-            final int codepoint = s.codePointAt(offset);
-            final int cc = Character.charCount(codepoint);
-
-//            final int fontIx = whichFont(fonts, codepoint);
-            // If this is a space, make it the same font as the previous codepoint.
-            // This keeps words of the same font together.
-            //
-            final int fontIx = codepoint==32 && currFontIx!=-1 ? currFontIx : whichFont(fonts, codepoint);
-            if(fontIx==-1) {
-                final String t = new String(new int[]{fonts[0].getMissingGlyphCode()}, 0, 1);
-                frs.add(new FontRun(t, fonts[0]));
-//                currFontIx = -1;
-            } else {
-                if(fontIx!=currFontIx) {
-                    if(currFontIx!=-1) {
-                        final String t = s.substring(start, offset);
-                        frs.add(new FontRun(t, fonts[currFontIx]));
-                    }
-                    start = offset;
-                    currFontIx = fontIx;
-                }
-            }
-
-            offset += cc;
-        }
-
-        // Add the end of the final run.
-        //
-        final String t = s.substring(start, length);
-        frs.add(new FontRun(t, fonts[currFontIx]));
-//        System.out.printf("%d %d - [%s]\n", runs.get(runs.size()-2), length, text.subSequence(runs.get(runs.size()-2), length));
-
-        return frs;
-    }
-
-    void drawStringListParts(final Graphics2D g2d, final String line, final Font[] fonts, final int x0, final int y0) {
-        final DirectionRuns parts = getDirectionRuns(line);
+    void drawMultiString(final Graphics2D g2d, final String line, final Font[] fonts, final int x0, final int y0) {
         int x = x0;
-        int layoutDirection = parts.firstIsLTR ? Font.LAYOUT_LEFT_TO_RIGHT : Font.LAYOUT_RIGHT_TO_LEFT;
-        boolean runDirection = parts.firstIsLTR ? TextAttribute.RUN_DIRECTION_LTR : TextAttribute.RUN_DIRECTION_RTL;
 
-        for(final String part : parts.runs) {
-            final List<FontRun> frs = getFontRuns(part, fonts);
-            for(final FontRun fr : frs) {
-//                final String spart = rtl && direction==Bidi.DIRECTION_LEFT_TO_RIGHT ? swapEndSpaces(fr.string) : fr.string;
-                final String spart = fr.string;
-                System.out.printf("* font run %s\n", fr);
+        for(final DirectionRun drun : DirectionRun.getDirectionRuns(line)) {
+            for(final FontRun frun : FontRun.getFontRuns(drun.run, fonts)) {
+                final String spart = frun.string;
+                System.out.printf("* font run %s\n", frun);
                 g2d.setColor(Color.GRAY);
-                g2d.setFont(fr.font);
+                g2d.setFont(frun.font);
                 final FontRenderContext frc = g2d.getFontRenderContext();
 
-//                final TextLayout layout = new TextLayout(spart, fr.font, frc);
-
                 final Map<AttributedCharacterIterator.Attribute,Object> attrs = new HashMap<>();
-                attrs.put(TextAttribute.RUN_DIRECTION, runDirection);
-                attrs.put(TextAttribute.FONT, fr.font);
+                attrs.put(TextAttribute.RUN_DIRECTION, drun.direction);
+                attrs.put(TextAttribute.FONT, frun.font);
                 final TextLayout layout = new TextLayout(spart, attrs, frc);
 
 //                System.out.printf("* isLTR %s\n", layout.isLeftToRight());
                 layout.draw(g2d, x, y0);
 
-                if(drawRuns || drawIndividual) {
-                    final int flags = layoutDirection | Font.LAYOUT_NO_START_CONTEXT | Font.LAYOUT_NO_LIMIT_CONTEXT;
-                    final GlyphVector gv = fr.font.layoutGlyphVector(frc, spart.toCharArray(), 0, spart.length(), flags);
+                final int flags = drun.getFontLayoutDirection() | Font.LAYOUT_NO_START_CONTEXT | Font.LAYOUT_NO_LIMIT_CONTEXT;
+                final GlyphVector gv = frun.font.layoutGlyphVector(frc, spart.toCharArray(), 0, spart.length(), flags);
     //                final int ng = gv.getNumGlyphs();
     //                System.out.printf("* %s %s\n", gv.getClass(), gv);
     //                System.out.printf("* numGlyphs %d\n", gv.getNumGlyphs());
 
-                    if(drawRuns) {
-                        final Rectangle r = gv.getPixelBounds(null, x, y0);
-                        g2d.setColor(Color.RED);
-                        g2d.drawRect(r.x, r.y, r.width, r.height);
-                    }
+                if(drawRuns) {
+                    final Rectangle r = gv.getPixelBounds(null, x, y0);
+                    g2d.setColor(Color.RED);
+                    g2d.drawRect(r.x, r.y, r.width, r.height);
+                }
 
-                    if(drawIndividual) {
-                        for(int glyphIx=0; glyphIx<gv.getNumGlyphs(); glyphIx++) {
-                            final int gc = gv.getGlyphCode(glyphIx);
-                            if(gc!=0) {
-                                final Rectangle gr = gv.getGlyphPixelBounds(glyphIx, frc, x, y0);
-        //                        final Point2D pos = gv.getGlyphPosition(glyphIx);
-        //                        System.out.printf("* GV  %d %s %s %s\n", glyphIx, gv.getGlyphCode(glyphIx), gr, spart);
-                                g2d.setColor(Color.BLUE);
-                                g2d.drawRect(gr.x, gr.y, gr.width, gr.height);
+                if(drawIndividual) {
+                    for(int glyphIx=0; glyphIx<gv.getNumGlyphs(); glyphIx++) {
+                        final int gc = gv.getGlyphCode(glyphIx);
+                        if(gc!=0) {
+                            final Rectangle gr = gv.getGlyphPixelBounds(glyphIx, frc, x, y0);
+    //                        final Point2D pos = gv.getGlyphPosition(glyphIx);
+    //                        System.out.printf("* GV  %d %s %s %s\n", glyphIx, gv.getGlyphCode(glyphIx), gr, spart);
+                            g2d.setColor(Color.BLUE);
+                            g2d.drawRect(gr.x, gr.y, gr.width, gr.height);
 
 //                                final Shape shape = gv.getGlyphOutline(glyphIx, x, y0);
 //                                g2d.setColor(Color.MAGENTA);
 //                                g2d.fill(shape);
-                            }
-                            else {
-                                System.out.printf("glyphcode %d\n", gc);
-                            }
+                        }
+                        else {
+                            System.out.printf("glyphcode %d\n", gc);
                         }
                     }
                 }
 
                 x += layout.getAdvance();
             }
-
-            layoutDirection = layoutDirection==Font.LAYOUT_LEFT_TO_RIGHT ? Font.LAYOUT_RIGHT_TO_LEFT : Font.LAYOUT_LEFT_TO_RIGHT;
-            runDirection = !runDirection;
         }
 
         setPreferredSize(new Dimension(x, PREFERRED_HEIGHT));
@@ -355,7 +190,9 @@ public class GlyphsComponent extends JComponent {
 
 //        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-        drawStringListParts(g2d, line, fonts, BASEX, BASEY);
+        drawMultiString(g2d, line, fonts, BASEX, BASEY);
     }
 }
