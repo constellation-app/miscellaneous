@@ -1,11 +1,14 @@
 package glyphs;
 
 import java.awt.EventQueue;
+import java.awt.GraphicsEnvironment;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -28,9 +31,16 @@ public class GlyphsFrame extends JFrame {
         initComponents();
 
         textLines.setModel(new DefaultComboBoxModel<>(text));
-        glyphComponent = new GlyphsComponent(fonts, (String)textLines.getModel().getSelectedItem());
+        glyphComponent = new GlyphsComponent(fonts, GlyphsComponent.FONT_SIZE, (String)textLines.getModel().getSelectedItem());
+
+        final GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        final String[] availablefonts = ge.getAvailableFontFamilyNames(Locale.ROOT);
+        Arrays.sort(availablefonts);
+        fontNameSp.setModel(new DefaultComboBoxModel<>(availablefonts));
+        fontNameSp.getModel().setSelectedItem(fonts[0]);
+
         fontSizeSp.setValue(GlyphsComponent.FONT_SIZE);
-        cbActionPerformed(null);
+        cbActionPerformed();
 
         scrollPane.setViewportView(glyphComponent);
     }
@@ -53,11 +63,13 @@ public class GlyphsFrame extends JFrame {
         fontSizeSp = new javax.swing.JSpinner();
         jLabel3 = new javax.swing.JLabel();
         scrollPane = new javax.swing.JScrollPane();
+        fontNameSp = new javax.swing.JComboBox<>();
+        jLabel4 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Glyph rendering example");
         setLocationByPlatform(true);
-        setPreferredSize(new java.awt.Dimension(1000, 600));
+        setPreferredSize(new java.awt.Dimension(1200, 600));
 
         textLines.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         textLines.addActionListener(new java.awt.event.ActionListener() {
@@ -101,7 +113,16 @@ public class GlyphsFrame extends JFrame {
             }
         });
 
-        jLabel3.setText("Font size:");
+        jLabel3.setText("Size:");
+
+        fontNameSp.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        fontNameSp.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fontNameSpActionPerformed(evt);
+            }
+        });
+
+        jLabel4.setText("Font:");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -120,7 +141,11 @@ public class GlyphsFrame extends JFrame {
                         .addComponent(cbIGlyphs)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(cbCGlyphs)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 253, Short.MAX_VALUE)
+                        .addGap(18, 18, 18)
+                        .addComponent(jLabel4)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(fontNameSp, javax.swing.GroupLayout.PREFERRED_SIZE, 219, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(jLabel3)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(fontSizeSp, javax.swing.GroupLayout.PREFERRED_SIZE, 62, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -143,7 +168,9 @@ public class GlyphsFrame extends JFrame {
                     .addComponent(cbIGlyphs)
                     .addComponent(cbCGlyphs)
                     .addComponent(fontSizeSp, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel3))
+                    .addComponent(jLabel3)
+                    .addComponent(fontNameSp, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel4))
                 .addContainerGap())
         );
 
@@ -151,7 +178,7 @@ public class GlyphsFrame extends JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void cbRunsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbRunsActionPerformed
-        cbActionPerformed(evt);
+        cbActionPerformed();
     }//GEN-LAST:event_cbRunsActionPerformed
 
     private void textLinesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_textLinesActionPerformed
@@ -160,23 +187,36 @@ public class GlyphsFrame extends JFrame {
     }//GEN-LAST:event_textLinesActionPerformed
 
     private void cbIGlyphsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbIGlyphsActionPerformed
-        cbActionPerformed(evt);
+        cbActionPerformed();
     }//GEN-LAST:event_cbIGlyphsActionPerformed
 
     private void cbCGlyphsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbCGlyphsActionPerformed
-        cbActionPerformed(evt);
+        cbActionPerformed();
     }//GEN-LAST:event_cbCGlyphsActionPerformed
 
     private void fontSizeSpStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_fontSizeSpStateChanged
-        final int fontSize = ((SpinnerNumberModel)fontSizeSp.getModel()).getNumber().intValue();
-        glyphComponent.setFontSize(fontSize);
+        fontActionPerformed();
     }//GEN-LAST:event_fontSizeSpStateChanged
 
-    private void cbActionPerformed(java.awt.event.ActionEvent evt) {
+    private void fontNameSpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fontNameSpActionPerformed
+        fontActionPerformed();
+    }//GEN-LAST:event_fontNameSpActionPerformed
+
+    private void cbActionPerformed() {
         final boolean drawRuns = cbRuns.isSelected();
         final boolean drawIndividual = cbIGlyphs.isSelected();
         final boolean drawCombined = cbCGlyphs.isSelected();
         glyphComponent.setBoundaries(drawRuns, drawIndividual, drawCombined);
+    }
+
+    private void fontActionPerformed() {
+        final String[] fontNames = glyphComponent.getFonts();
+        final String fontName = (String)fontNameSp.getSelectedItem();
+        fontNames[0] = fontName;
+
+        final int fontSize = ((SpinnerNumberModel)fontSizeSp.getModel()).getNumber().intValue();
+
+        glyphComponent.setFonts(fontNames, fontSize);
     }
 
     private static String[] loadText(final String fnam) throws IOException {
@@ -195,7 +235,6 @@ public class GlyphsFrame extends JFrame {
 
         final String[] fonts = loadText("fonts.txt");
         final String[] text = loadText("text.txt");
-        System.out.printf("text=%s\n", text[0]);
 
         try {
             /* Set the system look and feel */
@@ -216,10 +255,12 @@ public class GlyphsFrame extends JFrame {
     private javax.swing.JCheckBox cbCGlyphs;
     private javax.swing.JCheckBox cbIGlyphs;
     private javax.swing.JCheckBox cbRuns;
+    private javax.swing.JComboBox<String> fontNameSp;
     private javax.swing.JSpinner fontSizeSp;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JScrollPane scrollPane;
     private javax.swing.JComboBox<String> textLines;
     // End of variables declaration//GEN-END:variables

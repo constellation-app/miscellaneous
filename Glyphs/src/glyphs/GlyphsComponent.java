@@ -13,8 +13,8 @@ import java.awt.font.TextAttribute;
 import java.awt.font.TextLayout;
 import java.text.AttributedCharacterIterator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,34 +24,32 @@ import javax.swing.JComponent;
  *
  * @author algol
  */
-public class GlyphsComponent extends JComponent {
+public final class GlyphsComponent extends JComponent {
 
     private static final int PREFERRED_HEIGHT = 400;
 
     public static final int BASEX = 60;
     public static final int BASEY = 300;
 
+    /**
+     * This logical font is always present.
+     */
+    public static final String DEFAULT_FONT = "SansSerif";
     public static final int FONT_SIZE = 100;
 
-    private final String[] fontNames;
-    private final Font[] fonts;
+    private Font[] fonts;
     private String line;
 
     // Which boundaries do we draw?
     //
     private boolean drawRuns, drawIndividual, drawCombined;
 
-    private int fontSize;
+    public GlyphsComponent(final String[] fontNames, final int fontSize, final String initialLine) {
 
-    public GlyphsComponent(final String[] fontNames, final String initialLine) {
-
-        fontSize = FONT_SIZE;
-
-        this.fontNames = new String[fontNames.length];
-        fonts = new Font[fontNames.length];
-        for(int i=0; i<fontNames.length; i++) {
-            this.fontNames[i] = fontNames[i];
-            fonts[i] = new Font(fontNames[i], Font.PLAIN, fontSize);
+        if(fontNames.length>0) {
+            setFonts(fontNames, fontSize);
+        } else {
+            setFonts(new String[]{DEFAULT_FONT}, fontSize);
         }
 
         line = initialLine;
@@ -93,12 +91,20 @@ public class GlyphsComponent extends JComponent {
         repaint();
     }
 
-    public void setFontSize(final int fontSize) {
-        this.fontSize = fontSize;
-        for(int i=0; i<fontNames.length; i++) {
-            fonts[i] = new Font(fontNames[i], Font.PLAIN, fontSize);
-        }
+    /**
+     * Set the most specific font.
+     *
+     * @param fontNames
+     * @param fontSize
+     */
+    public void setFonts(final String[] fontNames, final int fontSize) {
+        fonts = Arrays.stream(fontNames).map(fn -> new Font(fn, Font.PLAIN, fontSize)).toArray(Font[]::new);
+
         repaint();
+    }
+
+    public String[] getFonts() {
+        return Arrays.stream(fonts).map(f -> f.getFontName()).toArray(String[]::new);
     }
 
     /**
