@@ -25,3 +25,4 @@ hs_err_pid*
 Glyphs/build/*
 Glyphs/nbproject/private/*
 !DependencyJars/*.jar
+/Glyphs/dist/

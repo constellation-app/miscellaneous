@@ -34,7 +34,7 @@ public final class GlyphsComponent extends JComponent {
     /**
      * This logical font is always present.
      */
-    public static final String DEFAULT_FONT = "SansSerif";
+    public static final String DEFAULT_FONT = Font.SANS_SERIF;
     public static final int FONT_SIZE = 100;
 
     private Font[] fonts;
@@ -44,12 +44,12 @@ public final class GlyphsComponent extends JComponent {
     //
     private boolean drawRuns, drawIndividual, drawCombined;
 
-    public GlyphsComponent(final String[] fontNames, final int fontSize, final String initialLine) {
+    public GlyphsComponent(final String[] fontNames, final int style, final int fontSize, final String initialLine) {
 
         if(fontNames.length>0) {
-            setFonts(fontNames, fontSize);
+            setFonts(fontNames, style, fontSize);
         } else {
-            setFonts(new String[]{DEFAULT_FONT}, fontSize);
+            setFonts(new String[]{DEFAULT_FONT}, style, fontSize);
         }
 
         line = initialLine;
@@ -97,8 +97,8 @@ public final class GlyphsComponent extends JComponent {
      * @param fontNames
      * @param fontSize
      */
-    public void setFonts(final String[] fontNames, final int fontSize) {
-        fonts = Arrays.stream(fontNames).map(fn -> new Font(fn, Font.PLAIN, fontSize)).toArray(Font[]::new);
+    public void setFonts(final String[] fontNames, final int style, final int fontSize) {
+        fonts = Arrays.stream(fontNames).map(fn -> new Font(fn, style, fontSize)).toArray(Font[]::new);
 
         repaint();
     }
@@ -177,13 +177,37 @@ public final class GlyphsComponent extends JComponent {
     void drawMultiString(final Graphics2D g2d, final String line, final Font[] fonts, final int x0, final int y0) {
         int x = x0;
 
+        final FontRenderContext frc = g2d.getFontRenderContext();
+
         for(final DirectionRun drun : DirectionRun.getDirectionRuns(line)) {
             for(final FontRun frun : FontRun.getFontRuns(drun.run, fonts)) {
+                // Draw an indicator line to show where the font run starts.
+                //
+                g2d.setColor(Color.LIGHT_GRAY);
+                g2d.drawLine(x, y0-128, x, y0+64);
+
                 final String spart = frun.string;
+                final int flags = drun.getFontLayoutDirection() | Font.LAYOUT_NO_START_CONTEXT | Font.LAYOUT_NO_LIMIT_CONTEXT;
+                final GlyphVector gv = frun.font.layoutGlyphVector(frc, spart.toCharArray(), 0, spart.length(), flags);
+    //                final int ng = gv.getNumGlyphs();
+    //                System.out.printf("* %s %s\n", gv.getClass(), gv);
+    //                System.out.printf("* numGlyphs %d\n", gv.getNumGlyphs());
+
+                // Some fonts are shaped such that the left edge of the pixel bounds is
+                // to the left of the starting point, and the right edge of the pixel
+                // bounds is to to the right of the pixel bounds (for example,
+                // the word "Test" in font "Montez" from fonts.google.com).
+                // Figure that out here.
+                //
+                final Rectangle pixelBounds = gv.getPixelBounds(null, x, y0);
+                if(pixelBounds.x<x) {
+                    System.out.printf("adjust %s %s %s\n", x, pixelBounds.x, x-pixelBounds.x);
+                    x += x-pixelBounds.x;
+                }
+
                 System.out.printf("* font run %s\n", frun);
                 g2d.setColor(Color.GRAY);
                 g2d.setFont(frun.font);
-                final FontRenderContext frc = g2d.getFontRenderContext();
 
                 final Map<AttributedCharacterIterator.Attribute,Object> attrs = new HashMap<>();
                 attrs.put(TextAttribute.RUN_DIRECTION, drun.direction);
@@ -193,12 +217,6 @@ public final class GlyphsComponent extends JComponent {
 //                System.out.printf("* isLTR %s\n", layout.isLeftToRight());
                 layout.draw(g2d, x, y0);
 
-                final int flags = drun.getFontLayoutDirection() | Font.LAYOUT_NO_START_CONTEXT | Font.LAYOUT_NO_LIMIT_CONTEXT;
-                final GlyphVector gv = frun.font.layoutGlyphVector(frc, spart.toCharArray(), 0, spart.length(), flags);
-    //                final int ng = gv.getNumGlyphs();
-    //                System.out.printf("* %s %s\n", gv.getClass(), gv);
-    //                System.out.printf("* numGlyphs %d\n", gv.getNumGlyphs());
-
                 // Iterate through the glyphs to get the bounding boxes.
                 //
                 final List<Rectangle> boxes = new ArrayList<>();
@@ -207,8 +225,8 @@ public final class GlyphsComponent extends JComponent {
                     if(gc!=0) {
                         final Rectangle gr = gv.getGlyphPixelBounds(glyphIx, frc, x, y0);
                         if(gr.width>0) {
-                        System.out.printf("rec %s\n", gr);
-                        boxes.add(gr);
+//                            System.out.printf("rec %s\n", gr);
+                            boxes.add(gr);
                         }
                     }
                     else {
@@ -224,9 +242,8 @@ public final class GlyphsComponent extends JComponent {
                 System.out.printf("%s\n", merged);
 
                 if(drawRuns) {
-                    final Rectangle r = gv.getPixelBounds(null, x, y0);
                     g2d.setColor(Color.RED);
-                    g2d.drawRect(r.x, r.y, r.width, r.height);
+                    g2d.drawRect(pixelBounds.x, pixelBounds.y, pixelBounds.width, pixelBounds.height);
                 }
 
                 if(drawIndividual) {
@@ -256,7 +273,16 @@ public final class GlyphsComponent extends JComponent {
                     }
                 }
 
-                x += layout.getAdvance();
+                g2d.setColor(Color.LIGHT_GRAY);
+                g2d.drawLine(x, y0-2, (int)(x + layout.getAdvance()), y0+2);
+
+                // Just like some fonts draw to the left of their start points (see above),
+                // some fonts draw after their advance.
+                // Figure that out here.
+                //
+                final int width = (int)Math.max(layout.getAdvance(), pixelBounds.width);
+//                x += layout.getAdvance();
+                x += width;
             }
         }
 
