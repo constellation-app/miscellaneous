@@ -3,14 +3,17 @@ package glyphs;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.font.FontRenderContext;
 import java.awt.font.GlyphVector;
+import java.awt.font.LineMetrics;
 import java.awt.font.TextAttribute;
 import java.awt.font.TextLayout;
+import java.awt.image.BufferedImage;
 import java.text.AttributedCharacterIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,7 +38,7 @@ public final class GlyphsComponent extends JComponent {
      * This logical font is always present.
      */
     public static final String DEFAULT_FONT = Font.SANS_SERIF;
-    public static final int FONT_SIZE = 100;
+    public static final int DEFAULT_FONT_SIZE = 64;
 
     private Font[] fonts;
     private String line;
@@ -44,7 +47,9 @@ public final class GlyphsComponent extends JComponent {
     //
     private boolean drawRuns, drawIndividual, drawCombined;
 
-    public GlyphsComponent(final String[] fontNames, final int style, final int fontSize, final String initialLine) {
+    private final GlyphsTextureBuffer textureBuffer;
+
+    public GlyphsComponent(final String[] fontNames, final int style, final int fontSize, final int textureBufferSize) {
 
         if(fontNames.length>0) {
             setFonts(fontNames, style, fontSize);
@@ -52,12 +57,11 @@ public final class GlyphsComponent extends JComponent {
             setFonts(new String[]{DEFAULT_FONT}, style, fontSize);
         }
 
-        line = initialLine;
         drawRuns = false;
         drawIndividual = false;
         drawCombined = false;
 
-        setLine(line);
+        textureBuffer = new GlyphsTextureBuffer(textureBufferSize, textureBufferSize);
     }
 
     /**
@@ -79,7 +83,6 @@ public final class GlyphsComponent extends JComponent {
     }
 
     public final void setLine(final String line) {
-//        this.line = line;
         this.line = cleanString(line);
         repaint();
     }
@@ -95,6 +98,7 @@ public final class GlyphsComponent extends JComponent {
      * Set the most specific font.
      *
      * @param fontNames
+     * @param style
      * @param fontSize
      */
     public void setFonts(final String[] fontNames, final int style, final int fontSize) {
@@ -175,6 +179,8 @@ public final class GlyphsComponent extends JComponent {
      * @param y0
      */
     void drawMultiString(final Graphics2D g2d, final String line, final Font[] fonts, final int x0, final int y0) {
+        g2d.setColor(Color.ORANGE);
+        g2d.drawLine(BASEX, BASEY, BASEX+1000, BASEY);
         int x = x0;
 
         final FontRenderContext frc = g2d.getFontRenderContext();
@@ -205,9 +211,11 @@ public final class GlyphsComponent extends JComponent {
                     x += x-pixelBounds.x;
                 }
 
-                System.out.printf("* font run %s\n", frun);
-                g2d.setColor(Color.GRAY);
+                System.out.printf("* font run %s %d->%s\n", frun, x, pixelBounds);
+                g2d.setColor(Color.WHITE);
                 g2d.setFont(frun.font);
+//                final FontMetrics fm = g2d.getFontMetrics(frun.font);
+//                final LineMetrics lm = frun.font.getLineMetrics(spart, frc);
 
                 final Map<AttributedCharacterIterator.Attribute,Object> attrs = new HashMap<>();
                 attrs.put(TextAttribute.RUN_DIRECTION, drun.direction);
@@ -216,6 +224,15 @@ public final class GlyphsComponent extends JComponent {
 
 //                System.out.printf("* isLTR %s\n", layout.isLeftToRight());
                 layout.draw(g2d, x, y0);
+
+//                // The font glyphs are drawn such that the reference point is at (x,y).
+//                // (See the javadoc for FontMetrics.) However, the pixelBounds
+//                // are where the glyphs are actually drawn. To place the glyphs
+//                // accurately within the bounding box, we need to know the difference.
+//                //
+//                final int frontDiff = pixelBounds.x - x;
+//                final int topDiff = pixelBounds.y - y0;
+//                textureBuffer.drawGlyph(layout, pixelBounds, frun.font, frontDiff, topDiff);
 
                 // Iterate through the glyphs to get the bounding boxes.
                 //
@@ -268,9 +285,7 @@ public final class GlyphsComponent extends JComponent {
 
                 if(drawCombined) {
                     g2d.setColor(Color.MAGENTA);
-                    for(final Rectangle r : merged) {
-                            g2d.drawRect(r.x, r.y, r.width, r.height);
-                    }
+                    merged.forEach(r -> {g2d.drawRect(r.x, r.y, r.width, r.height);});
                 }
 
                 g2d.setColor(Color.LIGHT_GRAY);
@@ -289,11 +304,14 @@ public final class GlyphsComponent extends JComponent {
         setPreferredSize(new Dimension(x, PREFERRED_HEIGHT));
         revalidate();
     }
+    BufferedImage getTextureBuffer() {
+        return textureBuffer.get();
+    }
 
     @Override
     protected void paintComponent(final Graphics g) {
         final Graphics2D g2d = (Graphics2D) g;
-        g.setColor(Color.WHITE);
+        g.setColor(Color.BLACK);
         g.fillRect(0, 0, getWidth(), getHeight());
 
 //        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);

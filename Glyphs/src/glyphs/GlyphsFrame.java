@@ -1,8 +1,11 @@
 package glyphs;
 
+import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,7 +17,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -25,14 +30,27 @@ import javax.swing.UnsupportedLookAndFeelException;
  */
 public class GlyphsFrame extends JFrame {
 
+    private static final int TEXTURE_BUFFER_SIZE = 512;
+
     private final GlyphsComponent glyphComponent;
+    private final JFrame imageFrame;
 
     public GlyphsFrame(final String[] fonts, final String[] text) {
 
         initComponents();
 
+        imageFrame = new JFrame();
+        imageFrame.getContentPane().setPreferredSize(new Dimension(TEXTURE_BUFFER_SIZE, TEXTURE_BUFFER_SIZE));
+        imageFrame.getContentPane().setLayout(new BorderLayout());
+//        imageFrame.getContentPane().setBackground(Color.BLACK);
+//        imageFrame.setPreferredSize(new Dimension(TEXTURE_BUFFER_SIZE*2, TEXTURE_BUFFER_SIZE*2));
+        imageFrame.getContentPane().add(new JLabel(), BorderLayout.CENTER);
+//        imageFrame.getContentPane().getComponent(0).setPreferredSize(new Dimension(TEXTURE_BUFFER_SIZE, TEXTURE_BUFFER_SIZE));
+        imageFrame.pack();
+        imageFrame.setVisible(true);
+
         textLines.setModel(new DefaultComboBoxModel<>(text));
-        glyphComponent = new GlyphsComponent(fonts, Font.PLAIN, GlyphsComponent.FONT_SIZE, (String)textLines.getModel().getSelectedItem());
+        glyphComponent = new GlyphsComponent(fonts, Font.PLAIN, GlyphsComponent.DEFAULT_FONT_SIZE, TEXTURE_BUFFER_SIZE);
 
         final GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
         final String[] availablefonts = ge.getAvailableFontFamilyNames(Locale.ROOT);
@@ -40,10 +58,20 @@ public class GlyphsFrame extends JFrame {
         fontNameSp.setModel(new DefaultComboBoxModel<>(availablefonts));
         fontNameSp.getModel().setSelectedItem(fonts[0]);
 
-        fontSizeSp.setValue(GlyphsComponent.FONT_SIZE);
+        fontSizeSp.setValue(GlyphsComponent.DEFAULT_FONT_SIZE);
         cbActionPerformed();
 
         scrollPane.setViewportView(glyphComponent);
+
+        glyphComponent.setLine((String)textLines.getModel().getSelectedItem());
+
+        showTextureBuffer();
+    }
+
+    private void showTextureBuffer() {
+        final JLabel label = (JLabel)imageFrame.getContentPane().getComponent(0);
+//        label.setPreferredSize(new Dimension(TEXTURE_BUFFER_SIZE+16, TEXTURE_BUFFER_SIZE+16));
+        label.setIcon(new ImageIcon(glyphComponent.getTextureBuffer()));
     }
 
     /**
@@ -197,6 +225,7 @@ public class GlyphsFrame extends JFrame {
     private void textLinesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_textLinesActionPerformed
         final String line = (String)textLines.getModel().getSelectedItem();
         glyphComponent.setLine(line);
+        showTextureBuffer();
     }//GEN-LAST:event_textLinesActionPerformed
 
     private void cbIGlyphsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbIGlyphsActionPerformed
@@ -235,6 +264,9 @@ public class GlyphsFrame extends JFrame {
         final int style = cbBold.isSelected() ? Font.BOLD : Font.PLAIN;
 
         glyphComponent.setFonts(fontNames, style, fontSize);
+        showTextureBuffer();
+
+//        glyphComponent.getTextureBuffer();
     }
 
     private static String[] loadText(final String fnam) throws IOException {
