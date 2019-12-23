@@ -1,15 +1,15 @@
 package glyphs;
 
 import java.awt.Color;
-import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
-import java.awt.font.TextLayout;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class encapsulates a BufferedImage that holds the glyph images.
@@ -41,11 +41,25 @@ final class GlyphsTextureBuffer {
     //
     private int maxHeight;
 
+    /**
+     * Remember where we wrote each BufferedImage.
+     * <p>
+     * This stops us writing the same image twice.
+     * <p>
+     * The key is the hashcode of the BufferedImage.
+     */
+    private final Map<Integer, GlyphData> memory;
+
     GlyphsTextureBuffer(final int width, final int height) {
         this.width = width;
         this.height = height;
         glyphBuffers = new ArrayList<>();
+        memory = new HashMap<>();
         reset();
+    }
+
+    int size() {
+        return glyphBuffers.size();
     }
 
     /**
@@ -53,8 +67,8 @@ final class GlyphsTextureBuffer {
      *
      * @return
      */
-    BufferedImage get() {
-        return glyphBuffers.get(glyphBuffers.size()-1);
+    BufferedImage get(final int i) {
+        return glyphBuffers.get(i);
     }
 
     void reset() {
@@ -66,30 +80,35 @@ final class GlyphsTextureBuffer {
         newGlyphBuffer();
     }
 
-    void drawGlyph(final TextLayout layout, final Rectangle boundingBox, final Font font, final int diff, final int topDiff) {
-        if((x+boundingBox.width) > width) {
-            newGlyphLine();
+    void addSubImage(final BufferedImage img) {
+        final int w = img.getWidth();
+        final int h = img.getHeight();
+
+        // Get the hashcode of the image.
+        // BufferedImage doesn't have a hashCode() method, so we use the underlying pixels.
+        //
+        final int hashcode = Arrays.hashCode(img.getRGB(0, 0, w, h, null, 0, w));
+
+        // Is there enough room for this image?
+        //
+        if(!memory.containsKey(hashcode)) {
+            if((x+w) > width) {
+                newGlyphLine();
+            }
+            if((y+h)>height) {
+                newGlyphBuffer();
+            }
+
+            g2d.drawImage(img, x, y, null);
+
+            memory.put(hashcode, new GlyphData(glyphBuffers.size()-1, new Rectangle(x, y, w, h)));
+
+            x += w;
+            maxHeight = Math.max(h, maxHeight);
         }
-
-        final FontMetrics fm = g2d.getFontMetrics(font);
-        final int y_ = y+fm.getHeight()-fm.getMaxDescent();
-
-        if((y_+boundingBox.height) > height) {
-            newGlyphBuffer();
+        else {
+            System.out.printf("Texture buffer already contains %d\n", hashcode);
         }
-
-        g2d.setColor(Color.GREEN);
-        g2d.drawRect(x, y, boundingBox.width, boundingBox.height);
-//        g2d.drawLine(x+boundingBox.x, y+boundingBox.y, x+boundingBox.width, y+boundingBox.height);
-        g2d.setColor(Color.WHITE);
-
-        System.out.printf("Draw image %s at %d,%d\n", boundingBox, x, y);
-        layout.draw(g2d, x-diff, y-topDiff);
-
-
-        x += boundingBox.width;
-
-        maxHeight = Math.max(boundingBox.height, maxHeight);
     }
 
     private void newGlyphBuffer() {
@@ -99,9 +118,12 @@ final class GlyphsTextureBuffer {
             g2d.dispose();
         }
         g2d = glyphBuffer.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
+
+        // We don;t want to antialias images that are already antialiased.
+        //
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
         g2d.setBackground(Color.BLACK);
         g2d.setColor(Color.RED);
         g2d.drawRect(0, 0, width-1, height-1);
@@ -118,5 +140,20 @@ final class GlyphsTextureBuffer {
         x = 0;
         y += maxHeight;
         maxHeight = 0;
+    }
+
+    private static final class GlyphData {
+        final int page;
+        final Rectangle r;
+
+        GlyphData(final int page, final Rectangle r) {
+            this.page = page;
+            this.r = r;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("[page %s %s]", page, r);
+        }
     }
 }

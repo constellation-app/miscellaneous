@@ -1,16 +1,12 @@
 package glyphs;
 
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.font.FontRenderContext;
 import java.awt.font.GlyphVector;
-import java.awt.font.LineMetrics;
 import java.awt.font.TextAttribute;
 import java.awt.font.TextLayout;
 import java.awt.image.BufferedImage;
@@ -21,18 +17,22 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.JComponent;
 
 /**
+ * Convert text into images that can be passed to OpenGL.
+ * <p>
+ * TODO Reset everything when the font changes.
  *
  * @author algol
  */
-public final class GlyphsComponent extends JComponent {
+public final class GlyphsComponent {
 
-    private static final int PREFERRED_HEIGHT = 400;
-
+    // Where do we draw the text?
+    //
     public static final int BASEX = 60;
-    public static final int BASEY = 300;
+    public static final int BASEY = 200;
+
+    private final BufferedImage drawing;
 
     /**
      * This logical font is always present.
@@ -51,6 +51,10 @@ public final class GlyphsComponent extends JComponent {
 
     public GlyphsComponent(final String[] fontNames, final int style, final int fontSize, final int textureBufferSize) {
 
+        // TODO Ensure that the BufferedImage is wide enough to draw into.
+        //
+        drawing = new BufferedImage(2048, 256, BufferedImage.TYPE_INT_ARGB);
+
         if(fontNames.length>0) {
             setFonts(fontNames, style, fontSize);
         } else {
@@ -64,6 +68,10 @@ public final class GlyphsComponent extends JComponent {
         textureBuffer = new GlyphsTextureBuffer(textureBufferSize, textureBufferSize);
     }
 
+    public BufferedImage getImage() {
+        return drawing;
+    }
+
     /**
      * Remove codepoints that can ruin layouts.
      *
@@ -73,9 +81,7 @@ public final class GlyphsComponent extends JComponent {
     static String cleanString(final String s) {
         return s
             .trim()
-//            .replace(" ", "") // TODO fix up spaces
             .codePoints()
-//            .filter(cp -> (cp<0x202a) || ((cp>0x202e) && (cp<0x206a)) || (cp>0x206f))
             .filter(cp -> !((cp>=0x202a && cp<=0x202e) || (cp>=0x206a && cp<=0x206f)))
             .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
             .toString()
@@ -84,14 +90,14 @@ public final class GlyphsComponent extends JComponent {
 
     public final void setLine(final String line) {
         this.line = cleanString(line);
-        repaint();
+        drawMultiString(BASEX, BASEY);
     }
 
     public void setBoundaries(final boolean drawRuns, final boolean drawIndividual, final boolean drawCombined) {
         this.drawRuns = drawRuns;
         this.drawIndividual = drawIndividual;
         this.drawCombined = drawCombined;
-        repaint();
+        drawMultiString(BASEX, BASEY);
     }
 
     /**
@@ -103,8 +109,7 @@ public final class GlyphsComponent extends JComponent {
      */
     public void setFonts(final String[] fontNames, final int style, final int fontSize) {
         fonts = Arrays.stream(fontNames).map(fn -> new Font(fn, style, fontSize)).toArray(Font[]::new);
-
-        repaint();
+        drawMultiString(BASEX, BASEY);
     }
 
     public String[] getFonts() {
@@ -178,19 +183,35 @@ public final class GlyphsComponent extends JComponent {
      * @param x0
      * @param y0
      */
-    void drawMultiString(final Graphics2D g2d, final String line, final Font[] fonts, final int x0, final int y0) {
-        g2d.setColor(Color.ORANGE);
-        g2d.drawLine(BASEX, BASEY, BASEX+1000, BASEY);
+    void drawMultiString(final int x0, final int y0) {
+        final Graphics2D g2d = drawing.createGraphics();
+        g2d.setBackground(new Color(0, 0, 0, 0));
+        g2d.clearRect(0, 0, drawing.getWidth(), drawing.getHeight());
+        g2d.setColor(Color.WHITE);
+
+//        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+        if(line==null){
+            g2d.dispose();
+            return;
+        }
+
+//        g2d.setColor(Color.ORANGE);
+//        g2d.drawLine(BASEX, BASEY, BASEX+1000, BASEY);
+
         int x = x0;
 
         final FontRenderContext frc = g2d.getFontRenderContext();
 
         for(final DirectionRun drun : DirectionRun.getDirectionRuns(line)) {
             for(final FontRun frun : FontRun.getFontRuns(drun.run, fonts)) {
-                // Draw an indicator line to show where the font run starts.
-                //
-                g2d.setColor(Color.LIGHT_GRAY);
-                g2d.drawLine(x, y0-128, x, y0+64);
+//                // Draw an indicator line to show where the font run starts.
+//                //
+//                g2d.setColor(Color.LIGHT_GRAY);
+//                g2d.drawLine(x, y0-128, x, y0+64);
 
                 final String spart = frun.string;
                 final int flags = drun.getFontLayoutDirection() | Font.LAYOUT_NO_START_CONTEXT | Font.LAYOUT_NO_LIMIT_CONTEXT;
@@ -214,8 +235,6 @@ public final class GlyphsComponent extends JComponent {
                 System.out.printf("* font run %s %d->%s\n", frun, x, pixelBounds);
                 g2d.setColor(Color.WHITE);
                 g2d.setFont(frun.font);
-//                final FontMetrics fm = g2d.getFontMetrics(frun.font);
-//                final LineMetrics lm = frun.font.getLineMetrics(spart, frc);
 
                 final Map<AttributedCharacterIterator.Attribute,Object> attrs = new HashMap<>();
                 attrs.put(TextAttribute.RUN_DIRECTION, drun.direction);
@@ -258,6 +277,8 @@ public final class GlyphsComponent extends JComponent {
                 final List<Rectangle> merged = mergeBoxes(boxes);
                 System.out.printf("%s\n", merged);
 
+                merged.forEach(r -> {textureBuffer.addSubImage(drawing.getSubimage(r.x, r.y, r.width, r.height));});
+
                 if(drawRuns) {
                     g2d.setColor(Color.RED);
                     g2d.drawRect(pixelBounds.x, pixelBounds.y, pixelBounds.width, pixelBounds.height);
@@ -288,8 +309,8 @@ public final class GlyphsComponent extends JComponent {
                     merged.forEach(r -> {g2d.drawRect(r.x, r.y, r.width, r.height);});
                 }
 
-                g2d.setColor(Color.LIGHT_GRAY);
-                g2d.drawLine(x, y0-2, (int)(x + layout.getAdvance()), y0+2);
+//                g2d.setColor(Color.LIGHT_GRAY);
+//                g2d.drawLine(x, y0-2, (int)(x + layout.getAdvance()), y0+2);
 
                 // Just like some fonts draw to the left of their start points (see above),
                 // some fonts draw after their advance.
@@ -301,24 +322,12 @@ public final class GlyphsComponent extends JComponent {
             }
         }
 
-        setPreferredSize(new Dimension(x, PREFERRED_HEIGHT));
-        revalidate();
+//        setPreferredSize(new Dimension(x, PREFERRED_HEIGHT));
+//        revalidate();
+        g2d.dispose();
     }
+
     BufferedImage getTextureBuffer() {
-        return textureBuffer.get();
-    }
-
-    @Override
-    protected void paintComponent(final Graphics g) {
-        final Graphics2D g2d = (Graphics2D) g;
-        g.setColor(Color.BLACK);
-        g.fillRect(0, 0, getWidth(), getHeight());
-
-//        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-
-        drawMultiString(g2d, line, fonts, BASEX, BASEY);
+        return textureBuffer.get(textureBuffer.size()-1);
     }
 }

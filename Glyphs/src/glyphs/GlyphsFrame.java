@@ -1,6 +1,7 @@
 package glyphs;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -39,7 +40,8 @@ public class GlyphsFrame extends JFrame {
 
         initComponents();
 
-        imageFrame = new JFrame();
+        imageFrame = new JFrame("Texture buffer (highest page)");
+        imageFrame.getContentPane().setBackground(Color.DARK_GRAY);
         imageFrame.getContentPane().setPreferredSize(new Dimension(TEXTURE_BUFFER_SIZE, TEXTURE_BUFFER_SIZE));
         imageFrame.getContentPane().setLayout(new BorderLayout());
 //        imageFrame.getContentPane().setBackground(Color.BLACK);
@@ -61,7 +63,8 @@ public class GlyphsFrame extends JFrame {
         fontSizeSp.setValue(GlyphsComponent.DEFAULT_FONT_SIZE);
         cbActionPerformed();
 
-        scrollPane.setViewportView(glyphComponent);
+//        scrollPane.setViewportView(glyphComponent);
+        imageLabel.setIcon(new ImageIcon(glyphComponent.getImage()));
 
         glyphComponent.setLine((String)textLines.getModel().getSelectedItem());
 
@@ -91,15 +94,17 @@ public class GlyphsFrame extends JFrame {
         cbCGlyphs = new javax.swing.JCheckBox();
         fontSizeSp = new javax.swing.JSpinner();
         jLabel3 = new javax.swing.JLabel();
-        scrollPane = new javax.swing.JScrollPane();
         fontNameSp = new javax.swing.JComboBox<>();
         jLabel4 = new javax.swing.JLabel();
         cbBold = new javax.swing.JCheckBox();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jPanel2 = new javax.swing.JPanel();
+        imageLabel = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Glyph rendering example");
         setLocationByPlatform(true);
-        setPreferredSize(new java.awt.Dimension(1200, 600));
+        setPreferredSize(new java.awt.Dimension(1200, 400));
 
         textLines.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         textLines.addActionListener(new java.awt.event.ActionListener() {
@@ -161,6 +166,14 @@ public class GlyphsFrame extends JFrame {
             }
         });
 
+        jPanel2.setBackground(new java.awt.Color(0, 0, 0));
+        jPanel2.setLayout(new java.awt.BorderLayout());
+
+        imageLabel.setText("jLabel5");
+        jPanel2.add(imageLabel, java.awt.BorderLayout.CENTER);
+
+        jScrollPane1.setViewportView(jPanel2);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -191,13 +204,13 @@ public class GlyphsFrame extends JFrame {
                         .addGap(0, 0, Short.MAX_VALUE))
                     .addComponent(textLines, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
-            .addComponent(scrollPane)
+            .addComponent(jScrollPane1)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addComponent(scrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 284, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 232, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
                     .addComponent(textLines, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -225,6 +238,7 @@ public class GlyphsFrame extends JFrame {
     private void textLinesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_textLinesActionPerformed
         final String line = (String)textLines.getModel().getSelectedItem();
         glyphComponent.setLine(line);
+        repaint();
         showTextureBuffer();
     }//GEN-LAST:event_textLinesActionPerformed
 
@@ -253,6 +267,7 @@ public class GlyphsFrame extends JFrame {
         final boolean drawIndividual = cbIGlyphs.isSelected();
         final boolean drawCombined = cbCGlyphs.isSelected();
         glyphComponent.setBoundaries(drawRuns, drawIndividual, drawCombined);
+        repaint();
     }
 
     private void fontActionPerformed() {
@@ -266,6 +281,7 @@ public class GlyphsFrame extends JFrame {
         glyphComponent.setFonts(fontNames, style, fontSize);
         showTextureBuffer();
 
+        repaint();
 //        glyphComponent.getTextureBuffer();
     }
 
@@ -308,11 +324,13 @@ public class GlyphsFrame extends JFrame {
     private javax.swing.JCheckBox cbRuns;
     private javax.swing.JComboBox<String> fontNameSp;
     private javax.swing.JSpinner fontSizeSp;
+    private javax.swing.JLabel imageLabel;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
-    private javax.swing.JScrollPane scrollPane;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JComboBox<String> textLines;
     // End of variables declaration//GEN-END:variables
 }
