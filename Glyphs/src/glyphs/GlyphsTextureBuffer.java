@@ -71,12 +71,14 @@ final class GlyphsTextureBuffer {
         return glyphBuffers.get(i);
     }
 
-    void reset() {
+    public void reset() {
         glyphBuffers.clear();
+        memory.clear();
         if(g2d!=null) {
             g2d.dispose();
+            g2d = null;
         }
-        g2d = null;
+
         newGlyphBuffer();
     }
 

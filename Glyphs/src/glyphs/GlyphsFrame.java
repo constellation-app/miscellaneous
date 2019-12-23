@@ -63,8 +63,9 @@ public class GlyphsFrame extends JFrame {
         fontSizeSp.setValue(GlyphsComponent.DEFAULT_FONT_SIZE);
         cbActionPerformed();
 
-//        scrollPane.setViewportView(glyphComponent);
+        final BufferedImage img = glyphComponent.getImage();
         imageLabel.setIcon(new ImageIcon(glyphComponent.getImage()));
+        glyphPanel.setPreferredSize(new Dimension(img.getWidth(), img.getHeight()));
 
         glyphComponent.setLine((String)textLines.getModel().getSelectedItem());
 
@@ -73,7 +74,6 @@ public class GlyphsFrame extends JFrame {
 
     private void showTextureBuffer() {
         final JLabel label = (JLabel)imageFrame.getContentPane().getComponent(0);
-//        label.setPreferredSize(new Dimension(TEXTURE_BUFFER_SIZE+16, TEXTURE_BUFFER_SIZE+16));
         label.setIcon(new ImageIcon(glyphComponent.getTextureBuffer()));
     }
 
@@ -98,8 +98,10 @@ public class GlyphsFrame extends JFrame {
         jLabel4 = new javax.swing.JLabel();
         cbBold = new javax.swing.JCheckBox();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jPanel2 = new javax.swing.JPanel();
+        glyphPanel = new javax.swing.JPanel();
         imageLabel = new javax.swing.JLabel();
+        textField = new javax.swing.JTextField();
+        addTextButton = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Glyph rendering example");
@@ -166,55 +168,77 @@ public class GlyphsFrame extends JFrame {
             }
         });
 
-        jPanel2.setBackground(new java.awt.Color(0, 0, 0));
-        jPanel2.setLayout(new java.awt.BorderLayout());
+        glyphPanel.setBackground(new java.awt.Color(0, 0, 0));
+        glyphPanel.setPreferredSize(new java.awt.Dimension(1500, 220));
+        glyphPanel.setLayout(new java.awt.BorderLayout());
+        glyphPanel.add(imageLabel, java.awt.BorderLayout.CENTER);
 
-        imageLabel.setText("jLabel5");
-        jPanel2.add(imageLabel, java.awt.BorderLayout.CENTER);
+        jScrollPane1.setViewportView(glyphPanel);
 
-        jScrollPane1.setViewportView(jPanel2);
+        textField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                textFieldActionPerformed(evt);
+            }
+        });
+
+        addTextButton.setText("Add text");
+        addTextButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                addTextButtonActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel2)
-                    .addComponent(jLabel1))
-                .addGap(10, 10, 10)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(cbRuns)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(cbIGlyphs)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(cbCGlyphs)
-                        .addGap(18, 18, 18)
-                        .addComponent(jLabel4)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(fontNameSp, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jLabel3)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(fontSizeSp, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(cbBold)
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addComponent(textLines, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
-            .addComponent(jScrollPane1)
+                        .addComponent(jLabel2)
+                        .addGap(60, 60, 60)
+                        .addComponent(textLines, javax.swing.GroupLayout.PREFERRED_SIZE, 574, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addGap(10, 10, 10)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(cbRuns)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(cbIGlyphs)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(cbCGlyphs)
+                                .addGap(18, 18, 18)
+                                .addComponent(jLabel4)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(fontNameSp, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(10, 10, 10)
+                                .addComponent(jLabel3)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(fontSizeSp, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(cbBold))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(textField, javax.swing.GroupLayout.PREFERRED_SIZE, 574, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(addTextButton, javax.swing.GroupLayout.PREFERRED_SIZE, 96, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 232, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 261, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
-                    .addComponent(textLines, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                    .addComponent(textLines, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel2))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(textField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(addTextButton))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
                     .addComponent(cbRuns)
@@ -262,6 +286,22 @@ public class GlyphsFrame extends JFrame {
         fontActionPerformed();
     }//GEN-LAST:event_cbBoldActionPerformed
 
+    private void addTextButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addTextButtonActionPerformed
+        textActionPerformed();
+    }//GEN-LAST:event_addTextButtonActionPerformed
+
+    private void textFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_textFieldActionPerformed
+        textActionPerformed();
+    }//GEN-LAST:event_textFieldActionPerformed
+
+    @SuppressWarnings("unchecked")
+    private void textActionPerformed() {
+        final String text = textField.getText().trim();
+        final DefaultComboBoxModel<String> model = (DefaultComboBoxModel)textLines.getModel();
+        model.addElement(text);
+        model.setSelectedItem(text);
+        repaint();
+    }
     private void cbActionPerformed() {
         final boolean drawRuns = cbRuns.isSelected();
         final boolean drawIndividual = cbIGlyphs.isSelected();
@@ -282,7 +322,6 @@ public class GlyphsFrame extends JFrame {
         showTextureBuffer();
 
         repaint();
-//        glyphComponent.getTextureBuffer();
     }
 
     private static String[] loadText(final String fnam) throws IOException {
@@ -318,19 +357,21 @@ public class GlyphsFrame extends JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton addTextButton;
     private javax.swing.JCheckBox cbBold;
     private javax.swing.JCheckBox cbCGlyphs;
     private javax.swing.JCheckBox cbIGlyphs;
     private javax.swing.JCheckBox cbRuns;
     private javax.swing.JComboBox<String> fontNameSp;
     private javax.swing.JSpinner fontSizeSp;
+    private javax.swing.JPanel glyphPanel;
     private javax.swing.JLabel imageLabel;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
-    private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTextField textField;
     private javax.swing.JComboBox<String> textLines;
     // End of variables declaration//GEN-END:variables
 }

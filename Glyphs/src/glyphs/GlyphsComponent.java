@@ -30,7 +30,7 @@ public final class GlyphsComponent {
     // Where do we draw the text?
     //
     public static final int BASEX = 60;
-    public static final int BASEY = 200;
+    public static final int BASEY = 180;
 
     private final BufferedImage drawing;
 
@@ -55,6 +55,8 @@ public final class GlyphsComponent {
         //
         drawing = new BufferedImage(2048, 256, BufferedImage.TYPE_INT_ARGB);
 
+        textureBuffer = new GlyphsTextureBuffer(textureBufferSize, textureBufferSize);
+
         if(fontNames.length>0) {
             setFonts(fontNames, style, fontSize);
         } else {
@@ -64,8 +66,6 @@ public final class GlyphsComponent {
         drawRuns = false;
         drawIndividual = false;
         drawCombined = false;
-
-        textureBuffer = new GlyphsTextureBuffer(textureBufferSize, textureBufferSize);
     }
 
     public BufferedImage getImage() {
@@ -101,14 +101,22 @@ public final class GlyphsComponent {
     }
 
     /**
-     * Set the most specific font.
+     * Set the fonts to be used by the font renderer.
+     * <p>
+     * The most specific font (ie the font containing the fewest glyphs) should
+     * be first. This allows a different font to be used for Latin characters.
+     * <p>
+     * Because setting new fonts implies a complete redraw,
+     * the existing texture buffers are reset, so all strings have to be
+     * rebuilt.
      *
-     * @param fontNames
-     * @param style
-     * @param fontSize
+     * @param fontNames An array of Font instances.
+     * @param style The style to be used to render the fonts (Font.PLAIN, Font.BOLD).
+     * @param fontSize The font size.
      */
     public void setFonts(final String[] fontNames, final int style, final int fontSize) {
         fonts = Arrays.stream(fontNames).map(fn -> new Font(fn, style, fontSize)).toArray(Font[]::new);
+        textureBuffer.reset();
         drawMultiString(BASEX, BASEY);
     }
 
