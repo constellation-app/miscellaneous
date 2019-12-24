@@ -2,6 +2,7 @@ package glyphs;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -17,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * Convert text into images that can be passed to OpenGL.
@@ -25,7 +27,7 @@ import java.util.Map;
  *
  * @author algol
  */
-public final class GlyphsComponent {
+public final class GlyphsBuffer {
 
     // Where do we draw the text?
     //
@@ -41,21 +43,23 @@ public final class GlyphsComponent {
     public static final int DEFAULT_FONT_SIZE = 64;
 
     private Font[] fonts;
+    private int maxFontHeight;
     private String line;
 
     // Which boundaries do we draw?
     //
     private boolean drawRuns, drawIndividual, drawCombined;
 
-    private final GlyphsTextureBuffer textureBuffer;
+    private final GlyphRectangleBuffer textureBuffer;
 
-    public GlyphsComponent(final String[] fontNames, final int style, final int fontSize, final int textureBufferSize) {
+    public GlyphsBuffer(final String[] fontNames, final int style, final int fontSize, final int textureBufferSize) {
 
         // TODO Ensure that the BufferedImage is wide enough to draw into.
+        // TODO Can we get away with using BufferedImage.TYPE_BYTE_GRAY?
         //
         drawing = new BufferedImage(2048, 256, BufferedImage.TYPE_INT_ARGB);
 
-        textureBuffer = new GlyphsTextureBuffer(textureBufferSize, textureBufferSize);
+        textureBuffer = new GlyphRectangleBuffer(textureBufferSize, textureBufferSize);
 
         if(fontNames.length>0) {
             setFonts(fontNames, style, fontSize);
@@ -116,7 +120,18 @@ public final class GlyphsComponent {
      */
     public void setFonts(final String[] fontNames, final int style, final int fontSize) {
         fonts = Arrays.stream(fontNames).map(fn -> new Font(fn, style, fontSize)).toArray(Font[]::new);
+        maxFontHeight = Arrays.stream(fonts).map(f -> {
+                final Graphics2D g2d = drawing.createGraphics();
+                final FontMetrics fm = g2d.getFontMetrics(f);
+                final int height = fm.getMaxAscent() + fm.getMaxDescent();
+                System.out.printf("@@font %s height %d\n", f, height);
+                g2d.dispose();
+                return height;
+            }).mapToInt(i -> i).max().orElseThrow(NoSuchElementException::new);
         textureBuffer.reset();
+
+        createBackgroundGlyph(0.5f);
+
         drawMultiString(BASEX, BASEY);
     }
 
@@ -285,7 +300,7 @@ public final class GlyphsComponent {
                 final List<Rectangle> merged = mergeBoxes(boxes);
                 System.out.printf("%s\n", merged);
 
-                merged.forEach(r -> {textureBuffer.addSubImage(drawing.getSubimage(r.x, r.y, r.width, r.height));});
+                merged.forEach(r -> {textureBuffer.addRectImage(drawing.getSubimage(r.x, r.y, r.width, r.height));});
 
                 if(drawRuns) {
                     g2d.setColor(Color.RED);
@@ -298,9 +313,11 @@ public final class GlyphsComponent {
                         if(gc!=0) {
                             final Rectangle gr = gv.getGlyphPixelBounds(glyphIx, frc, x, y0);
     //                        final Point2D pos = gv.getGlyphPosition(glyphIx);
-    //                        System.out.printf("* GV  %d %s %s %s\n", glyphIx, gv.getGlyphCode(glyphIx), gr, spart);
-                            g2d.setColor(Color.BLUE);
-                            g2d.drawRect(gr.x, gr.y, gr.width, gr.height);
+                            System.out.printf("* GV  %d %s %s %s\n", glyphIx, gv.getGlyphCode(glyphIx), gr, spart);
+                            if(gr.width!=0 && gr.height!=0) {
+                                g2d.setColor(Color.GREEN);
+                                g2d.drawRect(gr.x, gr.y, gr.width, gr.height);
+                            }
 
 //                                final Shape shape = gv.getGlyphOutline(glyphIx, x, y0);
 //                                g2d.setColor(Color.MAGENTA);
@@ -337,5 +354,18 @@ public final class GlyphsComponent {
 
     BufferedImage getTextureBuffer() {
         return textureBuffer.get(textureBuffer.size()-1);
+    }
+
+    public int createBackgroundGlyph(float alpha) {
+        final BufferedImage bg = new BufferedImage(maxFontHeight, maxFontHeight, BufferedImage.TYPE_BYTE_GRAY);
+        final Graphics2D g2d = bg.createGraphics();
+        final int intensity = (int) (alpha * 255);
+        g2d.setColor(new Color((intensity<<16) | (intensity<<8) | intensity));
+        g2d.fillRect(0, 0, maxFontHeight, maxFontHeight);
+        g2d.dispose();
+
+        textureBuffer.addRectImage(bg);
+
+        return 0;
     }
 }

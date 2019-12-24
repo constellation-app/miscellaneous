@@ -31,9 +31,9 @@ import javax.swing.UnsupportedLookAndFeelException;
  */
 public class GlyphsFrame extends JFrame {
 
-    private static final int TEXTURE_BUFFER_SIZE = 512;
+    private static final int TEXTURE_BUFFER_SIZE = 512 + 256;
 
-    private final GlyphsComponent glyphComponent;
+    private final GlyphsBuffer glyphComponent;
     private final JFrame imageFrame;
 
     public GlyphsFrame(final String[] fonts, final String[] text) {
@@ -50,9 +50,10 @@ public class GlyphsFrame extends JFrame {
 //        imageFrame.getContentPane().getComponent(0).setPreferredSize(new Dimension(TEXTURE_BUFFER_SIZE, TEXTURE_BUFFER_SIZE));
         imageFrame.pack();
         imageFrame.setVisible(true);
+        imageFrame.setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         textLines.setModel(new DefaultComboBoxModel<>(text));
-        glyphComponent = new GlyphsComponent(fonts, Font.PLAIN, GlyphsComponent.DEFAULT_FONT_SIZE, TEXTURE_BUFFER_SIZE);
+        glyphComponent = new GlyphsBuffer(fonts, Font.PLAIN, GlyphsBuffer.DEFAULT_FONT_SIZE, TEXTURE_BUFFER_SIZE);
 
         final GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
         final String[] availablefonts = ge.getAvailableFontFamilyNames(Locale.ROOT);
@@ -60,7 +61,7 @@ public class GlyphsFrame extends JFrame {
         fontNameSp.setModel(new DefaultComboBoxModel<>(availablefonts));
         fontNameSp.getModel().setSelectedItem(fonts[0]);
 
-        fontSizeSp.setValue(GlyphsComponent.DEFAULT_FONT_SIZE);
+        fontSizeSp.setValue(GlyphsBuffer.DEFAULT_FONT_SIZE);
         cbActionPerformed();
 
         final BufferedImage img = glyphComponent.getImage();

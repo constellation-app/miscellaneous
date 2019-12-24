@@ -78,6 +78,9 @@ class FontRun {
             offset += cc;
         }
 
+       // TODO Fix non-displayable codepoints when a font doesn't exist.
+       // At this point fontIx could currently be -1 from whichFont. Fix it.
+
         // Add the end of the final run.
         //
         final String t = s.substring(start, length);

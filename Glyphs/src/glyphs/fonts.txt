@@ -3,12 +3,15 @@
 #
 # Use a leading # to comment out lines.
 # Blank lines are allowed.
+#
+# TODO Fix non-displayable codepoints when a font doesn't exist.
 
+Malgun Gothic
 #Montez
 #Lobster
 #Impact
 #Ink Free
-Arial
+#Arial
 #Courier New
 Noto Naskh Arabic
-Noto Sans CJK SC Regular
+#Noto Sans CJK SC Regular
