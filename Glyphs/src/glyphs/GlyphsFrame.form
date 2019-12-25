@@ -132,7 +132,6 @@
     </Component>
     <Component class="javax.swing.JCheckBox" name="cbRuns">
       <Properties>
-        <Property name="selected" type="boolean" value="true"/>
         <Property name="text" type="java.lang.String" value="Font runs"/>
       </Properties>
       <Events>
@@ -141,7 +140,6 @@
     </Component>
     <Component class="javax.swing.JCheckBox" name="cbIGlyphs">
       <Properties>
-        <Property name="selected" type="boolean" value="true"/>
         <Property name="text" type="java.lang.String" value="Individual glyphs"/>
       </Properties>
       <Events>

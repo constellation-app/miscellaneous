@@ -98,9 +98,9 @@ class DirectionRun {
                 final char d = codepointDirection(codepoint);
                 dir = d!='R' ? 'L' : 'R';
             }
-            System.out.printf("-- %d %d %c %c %d %s\n", offset, codepoint, currDir, dir, Character.getType(codepoint), Character.UnicodeBlock.of(codepoint));
+//            System.out.printf("codepoint %d %d %c %c %d %s\n", offset, codepoint, currDir, dir, Character.getType(codepoint), Character.UnicodeBlock.of(codepoint));
             if(dir!=currDir && currDir!=' ') {
-                System.out.printf("CHDIR %s %s\n", start, offset);
+//                System.out.printf("CHDIR %s %s\n", start, offset);
                 runs.add(new DirectionRun(text.substring(start, offset), currDir=='L'?TextAttribute.RUN_DIRECTION_LTR:TextAttribute.RUN_DIRECTION_RTL));
                 start = offset;
             }

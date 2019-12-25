@@ -11,6 +11,9 @@ import java.awt.font.GlyphVector;
 import java.awt.font.TextAttribute;
 import java.awt.font.TextLayout;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.text.AttributedCharacterIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import javax.imageio.ImageIO;
 
 /**
  * Convert text into images that can be passed to OpenGL.
@@ -27,7 +31,7 @@ import java.util.NoSuchElementException;
  *
  * @author algol
  */
-public final class GlyphsBuffer {
+public final class GlyphsBuffer implements GlyphManager {
 
     // Where do we draw the text?
     //
@@ -51,6 +55,21 @@ public final class GlyphsBuffer {
     private boolean drawRuns, drawIndividual, drawCombined;
 
     private final GlyphRectangleBuffer textureBuffer;
+
+    /**
+     * A default no-op GlyphStream to use when the user specifies null.
+     */
+    private static final GlyphStream DEFAULT_GLYPH_STREAM = new GlyphStream() {
+        @Override
+        public void newLine(final float width) {
+            System.out.printf("GlyphStream newLine %f\n", width);
+        }
+
+        @Override
+        public void addGlyph(final int glyphPosition, final float x, final float y) {
+            System.out.printf("GlyphStream addGlyph %d %f %f\n", glyphPosition, x, y);
+        }
+    };
 
     public GlyphsBuffer(final String[] fontNames, final int style, final int fontSize, final int textureBufferSize) {
 
@@ -94,14 +113,14 @@ public final class GlyphsBuffer {
 
     public final void setLine(final String line) {
         this.line = cleanString(line);
-        drawMultiString(BASEX, BASEY);
+        renderTextAsLigatures(line, null);
     }
 
     public void setBoundaries(final boolean drawRuns, final boolean drawIndividual, final boolean drawCombined) {
         this.drawRuns = drawRuns;
         this.drawIndividual = drawIndividual;
         this.drawCombined = drawCombined;
-        drawMultiString(BASEX, BASEY);
+        renderTextAsLigatures(line, null);
     }
 
     /**
@@ -132,7 +151,7 @@ public final class GlyphsBuffer {
 
         createBackgroundGlyph(0.5f);
 
-        drawMultiString(BASEX, BASEY);
+        renderTextAsLigatures(line, null);
     }
 
     public String[] getFonts() {
@@ -200,13 +219,14 @@ public final class GlyphsBuffer {
      * <p>
      * Hashes of the glyph images are used to determine if the image has already
      * been
-     * @param g2d
-     * @param line
-     * @param fonts
-     * @param x0
-     * @param y0
+     * @param text
      */
-    void drawMultiString(final int x0, final int y0) {
+    @Override
+    public void renderTextAsLigatures(final String text, GlyphStream glyphStream) {
+        if(glyphStream==null) {
+            glyphStream = DEFAULT_GLYPH_STREAM;
+        }
+
         final Graphics2D g2d = drawing.createGraphics();
         g2d.setBackground(new Color(0, 0, 0, 0));
         g2d.clearRect(0, 0, drawing.getWidth(), drawing.getHeight());
@@ -225,9 +245,14 @@ public final class GlyphsBuffer {
 //        g2d.setColor(Color.ORANGE);
 //        g2d.drawLine(BASEX, BASEY, BASEX+1000, BASEY);
 
-        int x = x0;
+        int x = BASEX;
+        final int y0 = BASEY;
 
         final FontRenderContext frc = g2d.getFontRenderContext();
+
+        int left = Integer.MAX_VALUE;
+        int right = Integer.MIN_VALUE;
+        final List<GlyphRectangle> glyphRectangles = new ArrayList<>();
 
         for(final DirectionRun drun : DirectionRun.getDirectionRuns(line)) {
             for(final FontRun frun : FontRun.getFontRuns(drun.run, fonts)) {
@@ -286,11 +311,14 @@ public final class GlyphsBuffer {
                         if(gr.width>0) {
 //                            System.out.printf("rec %s\n", gr);
                             boxes.add(gr);
+
+                            left = Math.min(left, gr.x);
+                            right = Math.max(right, gr.x+gr.width);
                         }
                     }
-                    else {
-                        System.out.printf("glyphcode %d\n", gc);
-                    }
+//                    else {
+//                        System.out.printf("glyphcode %d\n", gc);
+//                    }
                 }
 
                 // Sort them by x position.
@@ -298,9 +326,17 @@ public final class GlyphsBuffer {
                 Collections.sort(boxes, (Rectangle r0, Rectangle r1) -> r0.x - r1.x);
 
                 final List<Rectangle> merged = mergeBoxes(boxes);
-                System.out.printf("%s\n", merged);
+//                System.out.printf("merged: %s\n", merged);
 
-                merged.forEach(r -> {textureBuffer.addRectImage(drawing.getSubimage(r.x, r.y, r.width, r.height));});
+                // Add each merged glyph rectangle to the texture buffer.
+                // Remember the texture position and rectangle (see below).
+                //
+                final FontMetrics fm = g2d.getFontMetrics(frun.font);
+                for(final Rectangle r : merged) {
+                    final int position = textureBuffer.addRectImage(drawing.getSubimage(r.x, r.y, r.width, r.height));
+                    glyphRectangles.add(new GlyphRectangle(position, r, fm.getAscent()));
+//                    glyphStream.addGlyph(position, x/maxFontHeight, (y0-fm.getAscent())/maxFontHeight);
+                }
 
                 if(drawRuns) {
                     g2d.setColor(Color.RED);
@@ -313,7 +349,7 @@ public final class GlyphsBuffer {
                         if(gc!=0) {
                             final Rectangle gr = gv.getGlyphPixelBounds(glyphIx, frc, x, y0);
     //                        final Point2D pos = gv.getGlyphPosition(glyphIx);
-                            System.out.printf("* GV  %d %s %s %s\n", glyphIx, gv.getGlyphCode(glyphIx), gr, spart);
+//                            System.out.printf("* GV  %d %s %s %s\n", glyphIx, gv.getGlyphCode(glyphIx), gr, spart);
                             if(gr.width!=0 && gr.height!=0) {
                                 g2d.setColor(Color.GREEN);
                                 g2d.drawRect(gr.x, gr.y, gr.width, gr.height);
@@ -342,20 +378,71 @@ public final class GlyphsBuffer {
                 // Figure that out here.
                 //
                 final int width = (int)Math.max(layout.getAdvance(), pixelBounds.width);
-//                x += layout.getAdvance();
                 x += width;
             }
         }
 
-//        setPreferredSize(new Dimension(x, PREFERRED_HEIGHT));
-//        revalidate();
         g2d.dispose();
+
+        // The glyphRectangles list contains the absolute positions of each glyph rectangle
+        // in pixels as drawn above.
+        // Our OpenGL shaders expect x in world units, where x is relative to the centre
+        // of the entire line rather than the left.
+        //
+        final float centre = (left+right)/2f;
+        for(final GlyphRectangle gr : glyphRectangles) {
+            System.out.printf("%s\n", gr);
+            final float cx = (centre - gr.rect.x)/(float)maxFontHeight;
+            final float cy = (gr.rect.y + gr.ascent)/(float)maxFontHeight;
+            glyphStream.addGlyph(gr.position, cx, cy);
+        }
+    }
+
+    @Override
+    public int getGlyphCount() {
+        return textureBuffer.getRectangleCount();
+    }
+
+    @Override
+    public int getGlyphPageCount() {
+        return textureBuffer.size();
+    }
+
+    @Override
+    public void readGlyphTexturePage(final int page, final ByteBuffer buffer) {
+        textureBuffer.readRectangleBuffer(page, buffer);
+    }
+
+    @Override
+    public float[] getGlyphTextureCoordinates() {
+        return textureBuffer.getRectangleCoordinates();
+    }
+
+    @Override
+    public int getTextureWidth() {
+        return textureBuffer.width;
+    }
+
+    @Override
+    public int getTextureHeight() {
+        return textureBuffer.height;
+    }
+
+    @Override
+    public float getWidthScalingFactor() {
+        return maxFontHeight / textureBuffer.width;
+    }
+
+    @Override
+    public float getHeightScalingFactor() {
+        return maxFontHeight / textureBuffer.height;
     }
 
     BufferedImage getTextureBuffer() {
         return textureBuffer.get(textureBuffer.size()-1);
     }
 
+    @Override
     public int createBackgroundGlyph(float alpha) {
         final BufferedImage bg = new BufferedImage(maxFontHeight, maxFontHeight, BufferedImage.TYPE_BYTE_GRAY);
         final Graphics2D g2d = bg.createGraphics();
@@ -367,5 +454,28 @@ public final class GlyphsBuffer {
         textureBuffer.addRectImage(bg);
 
         return 0;
+    }
+
+    @Override
+    public void writeGlyphBuffer(final int page, final OutputStream out) throws IOException {
+        final BufferedImage img = textureBuffer.get(page);
+        ImageIO.write(img, "png", out);
+    }
+
+    private static class GlyphRectangle {
+        final int position;
+        final Rectangle rect;
+        final int ascent;
+
+        GlyphRectangle(final int position, final Rectangle rect, final int ascent) {
+            this.position = position;
+            this.rect = rect;
+            this.ascent = ascent;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("[GlyphRectangle p=%d r=%s a=%d]", position, rect, ascent);
+        }
     }
 }

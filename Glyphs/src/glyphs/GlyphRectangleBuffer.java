@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,11 +26,6 @@ final class GlyphRectangleBuffer {
     // Each one of these will eventually be copied to a texture buffer.
     //
     private final List<BufferedImage> rectBuffers;
-
-    // The width and height of each BufferedImage.
-    //
-    private final int width;
-    private final int height;
 
     // The current rectangle buffer and its graphics (a reference to
     // the end item in rectBuffers).
@@ -61,6 +58,16 @@ final class GlyphRectangleBuffer {
      */
     private final Map<Integer, Integer> memory;
 
+    /**
+     * How many rectangles have been created?
+     */
+    private int rectangleCount;
+
+    // The width and height of each BufferedImage.
+    //
+    public final int width;
+    public final int height;
+
     GlyphRectangleBuffer(final int width, final int height) {
         this.width = width;
         this.height = height;
@@ -70,7 +77,7 @@ final class GlyphRectangleBuffer {
         reset();
     }
 
-    int size() {
+    public int size() {
         return rectBuffers.size();
     }
 
@@ -83,6 +90,20 @@ final class GlyphRectangleBuffer {
         return rectBuffers.get(i);
     }
 
+    public void readRectangleBuffer(final int page, final ByteBuffer buffer) {
+        final BufferedImage rb = rectBuffers.get(page);
+        final DataBufferByte dbb = (DataBufferByte)rb.getData().getDataBuffer();
+        buffer.put(dbb.getData());
+    }
+
+    public int getRectangleCount() {
+        return rectangleCount;
+    }
+
+    public float[] getRectangleCoordinates() {
+        return rectTextureCoordinates;
+    }
+
     public void reset() {
         rectBuffers.clear();
         memory.clear();
@@ -90,6 +111,8 @@ final class GlyphRectangleBuffer {
             g2d.dispose();
             g2d = null;
         }
+
+        rectangleCount = 0;
 
         newRectBuffer();
     }
@@ -152,6 +175,8 @@ final class GlyphRectangleBuffer {
 
             x += w;
             maxHeight = Math.max(h, maxHeight);
+
+            rectangleCount++;
         }
 
         return rectIndex;
@@ -172,7 +197,8 @@ final class GlyphRectangleBuffer {
 //    }
 
     private void newRectBuffer() {
-        rectBuffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+//        rectBuffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        rectBuffer = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
 
         if(g2d!=null) {
             g2d.dispose();

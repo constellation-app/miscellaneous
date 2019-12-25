@@ -31,6 +31,11 @@ import javax.swing.UnsupportedLookAndFeelException;
  */
 public class GlyphsFrame extends JFrame {
 
+    /**
+     * The size of the rectangle buffer.
+     * An arbitrary number, not too small that we need lots of buffers,
+     * but not too large that OpenGL can't cope.
+     */
     private static final int TEXTURE_BUFFER_SIZE = 512 + 256;
 
     private final GlyphsBuffer glyphComponent;
@@ -120,7 +125,6 @@ public class GlyphsFrame extends JFrame {
 
         jLabel2.setText("Text:");
 
-        cbRuns.setSelected(true);
         cbRuns.setText("Font runs");
         cbRuns.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -128,7 +132,6 @@ public class GlyphsFrame extends JFrame {
             }
         });
 
-        cbIGlyphs.setSelected(true);
         cbIGlyphs.setText("Individual glyphs");
         cbIGlyphs.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
