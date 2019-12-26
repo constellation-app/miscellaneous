@@ -1,4 +1,4 @@
-package glyphs;
+package au.gov.asd.tac.constellation.visual.opengl.utilities.glyphs;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -31,13 +31,6 @@ import javax.swing.UnsupportedLookAndFeelException;
  */
 public class GlyphsFrame extends JFrame {
 
-    /**
-     * The size of the rectangle buffer.
-     * An arbitrary number, not too small that we need lots of buffers,
-     * but not too large that OpenGL can't cope.
-     */
-    private static final int TEXTURE_BUFFER_SIZE = 512 + 256;
-
     private final GlyphsBuffer glyphComponent;
     private final JFrame imageFrame;
 
@@ -47,7 +40,7 @@ public class GlyphsFrame extends JFrame {
 
         imageFrame = new JFrame("Texture buffer (highest page)");
         imageFrame.getContentPane().setBackground(Color.DARK_GRAY);
-        imageFrame.getContentPane().setPreferredSize(new Dimension(TEXTURE_BUFFER_SIZE, TEXTURE_BUFFER_SIZE));
+        imageFrame.getContentPane().setPreferredSize(new Dimension(GlyphsBuffer.DEFAULT_TEXTURE_BUFFER_SIZE, GlyphsBuffer.DEFAULT_TEXTURE_BUFFER_SIZE));
         imageFrame.getContentPane().setLayout(new BorderLayout());
 //        imageFrame.getContentPane().setBackground(Color.BLACK);
 //        imageFrame.setPreferredSize(new Dimension(TEXTURE_BUFFER_SIZE*2, TEXTURE_BUFFER_SIZE*2));
@@ -58,7 +51,8 @@ public class GlyphsFrame extends JFrame {
         imageFrame.setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         textLines.setModel(new DefaultComboBoxModel<>(text));
-        glyphComponent = new GlyphsBuffer(fonts, Font.PLAIN, GlyphsBuffer.DEFAULT_FONT_SIZE, TEXTURE_BUFFER_SIZE);
+//        glyphComponent = new GlyphsBuffer(fonts, Font.PLAIN, GlyphsBuffer.DEFAULT_FONT_SIZE, GlyphsBuffer.DEFAULT_TEXTURE_BUFFER_SIZE);
+        glyphComponent = new GlyphsBuffer();
 
         final GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
         final String[] availablefonts = ge.getAvailableFontFamilyNames(Locale.ROOT);
@@ -112,7 +106,6 @@ public class GlyphsFrame extends JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Glyph rendering example");
         setLocationByPlatform(true);
-        setPreferredSize(new java.awt.Dimension(1200, 400));
 
         textLines.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         textLines.addActionListener(new java.awt.event.ActionListener() {

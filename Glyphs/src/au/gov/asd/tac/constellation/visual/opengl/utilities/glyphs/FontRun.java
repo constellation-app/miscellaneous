@@ -1,4 +1,4 @@
-package glyphs;
+package au.gov.asd.tac.constellation.visual.opengl.utilities.glyphs;
 
 import java.awt.Font;
 import java.util.ArrayList;

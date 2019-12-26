@@ -1,4 +1,4 @@
-package glyphs;
+package au.gov.asd.tac.constellation.visual.opengl.utilities.glyphs;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -168,10 +168,14 @@ final class GlyphRectangleBuffer {
             }
 
             // TODO fill in the right numbers (see the FX version of addTextureCoordinates).
-            rectTextureCoordinates[ptr+0] = 0.0f;
-            rectTextureCoordinates[ptr+1] = 0.0f;
-            rectTextureCoordinates[ptr+2] = 0.0f;
-            rectTextureCoordinates[ptr+3] = 0.0f;
+            // Texture coordinates are in units of texture buffer size;
+            // each coordinate ranges from 0 to 1. The x coordinate also encodes
+            // the texture page.
+            //
+            rectTextureCoordinates[ptr+0] = (size()-1) + x/(float)width;
+            rectTextureCoordinates[ptr+1] = y/(float)height;
+            rectTextureCoordinates[ptr+2] = w/(float)width;
+            rectTextureCoordinates[ptr+3] = h/(float)height;
 
             x += w;
             maxHeight = Math.max(h, maxHeight);

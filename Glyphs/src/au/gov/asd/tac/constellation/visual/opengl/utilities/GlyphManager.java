@@ -1,4 +1,4 @@
-package glyphs;
+package au.gov.asd.tac.constellation.visual.opengl.utilities;
 
 import java.io.IOException;
 import java.io.OutputStream;

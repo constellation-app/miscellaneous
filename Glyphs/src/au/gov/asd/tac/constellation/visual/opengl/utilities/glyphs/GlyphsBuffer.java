@@ -1,5 +1,6 @@
-package glyphs;
+package au.gov.asd.tac.constellation.visual.opengl.utilities.glyphs;
 
+import au.gov.asd.tac.constellation.visual.opengl.utilities.GlyphManager;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -46,6 +47,13 @@ public final class GlyphsBuffer implements GlyphManager {
     public static final String DEFAULT_FONT = Font.SANS_SERIF;
     public static final int DEFAULT_FONT_SIZE = 64;
 
+    /**
+     * The size of the rectangle buffer.
+     * An arbitrary number, not too small that we need lots of buffers,
+     * but not too large that OpenGL can't cope.
+     */
+    public static final int DEFAULT_TEXTURE_BUFFER_SIZE = 512 + 256;
+
     private Font[] fonts;
     private int maxFontHeight;
     private String line;
@@ -71,16 +79,21 @@ public final class GlyphsBuffer implements GlyphManager {
         }
     };
 
+    public GlyphsBuffer() {
+        this(null, Font.PLAIN, DEFAULT_FONT_SIZE, DEFAULT_TEXTURE_BUFFER_SIZE);
+    }
+
     public GlyphsBuffer(final String[] fontNames, final int style, final int fontSize, final int textureBufferSize) {
 
         // TODO Ensure that the BufferedImage is wide enough to draw into.
         // TODO Can we get away with using BufferedImage.TYPE_BYTE_GRAY?
         //
-        drawing = new BufferedImage(2048, 256, BufferedImage.TYPE_INT_ARGB);
+//        drawing = new BufferedImage(2048, 256, BufferedImage.TYPE_INT_ARGB);
+        drawing = new BufferedImage(2048, 256, BufferedImage.TYPE_BYTE_GRAY);
 
         textureBuffer = new GlyphRectangleBuffer(textureBufferSize, textureBufferSize);
 
-        if(fontNames.length>0) {
+        if(fontNames!=null && fontNames.length>0) {
             setFonts(fontNames, style, fontSize);
         } else {
             setFonts(new String[]{DEFAULT_FONT}, style, fontSize);
