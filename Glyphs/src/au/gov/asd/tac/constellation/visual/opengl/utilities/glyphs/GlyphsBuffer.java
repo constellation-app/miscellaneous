@@ -236,6 +236,11 @@ public final class GlyphsBuffer implements GlyphManager {
      */
     @Override
     public void renderTextAsLigatures(final String text, GlyphStream glyphStream) {
+        if(text==null || text.isEmpty()) {
+            return;
+        }
+
+        System.out.printf("@@render [%s] %s\n", text, glyphStream);
         if(glyphStream==null) {
             glyphStream = DEFAULT_GLYPH_STREAM;
         }
@@ -250,10 +255,10 @@ public final class GlyphsBuffer implements GlyphManager {
         g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-        if(line==null){
-            g2d.dispose();
-            return;
-        }
+//        if(text==null){
+//            g2d.dispose();
+//            return;
+//        }
 
 //        g2d.setColor(Color.ORANGE);
 //        g2d.drawLine(BASEX, BASEY, BASEX+1000, BASEY);
@@ -267,7 +272,7 @@ public final class GlyphsBuffer implements GlyphManager {
         int right = Integer.MIN_VALUE;
         final List<GlyphRectangle> glyphRectangles = new ArrayList<>();
 
-        for(final DirectionRun drun : DirectionRun.getDirectionRuns(line)) {
+        for(final DirectionRun drun : DirectionRun.getDirectionRuns(text)) {
             for(final FontRun frun : FontRun.getFontRuns(drun.run, fonts)) {
 //                // Draw an indicator line to show where the font run starts.
 //                //
@@ -277,9 +282,9 @@ public final class GlyphsBuffer implements GlyphManager {
                 final String spart = frun.string;
                 final int flags = drun.getFontLayoutDirection() | Font.LAYOUT_NO_START_CONTEXT | Font.LAYOUT_NO_LIMIT_CONTEXT;
                 final GlyphVector gv = frun.font.layoutGlyphVector(frc, spart.toCharArray(), 0, spart.length(), flags);
-    //                final int ng = gv.getNumGlyphs();
-    //                System.out.printf("* %s %s\n", gv.getClass(), gv);
-    //                System.out.printf("* numGlyphs %d\n", gv.getNumGlyphs());
+                final int ng = gv.getNumGlyphs();
+                System.out.printf("* %s %s\n", gv.getClass(), gv);
+                System.out.printf("* numGlyphs %d\n", gv.getNumGlyphs());
 
                 // Some fonts are shaped such that the left edge of the pixel bounds is
                 // to the left of the starting point, and the right edge of the pixel
@@ -403,10 +408,11 @@ public final class GlyphsBuffer implements GlyphManager {
         // of the entire line rather than the left.
         //
         final float centre = (left+right)/2f;
+        Collections.reverse(glyphRectangles);
         for(final GlyphRectangle gr : glyphRectangles) {
-            System.out.printf("%s\n", gr);
-            final float cx = (centre - gr.rect.x)/(float)maxFontHeight;
-            final float cy = (gr.rect.y + gr.ascent)/(float)maxFontHeight;
+            final float cx = (gr.rect.x-centre)/(float)maxFontHeight;
+            final float cy = (gr.rect.y + gr.ascent)/(float)maxFontHeight-2;
+//            System.out.printf("GlyphRectangle: %s %f %f\n", gr, cx, cy);
             glyphStream.addGlyph(gr.position, cx, cy);
         }
     }
@@ -443,12 +449,12 @@ public final class GlyphsBuffer implements GlyphManager {
 
     @Override
     public float getWidthScalingFactor() {
-        return maxFontHeight / textureBuffer.width;
+        return 12f;//maxFontHeight / textureBuffer.width;
     }
 
     @Override
     public float getHeightScalingFactor() {
-        return maxFontHeight / textureBuffer.height;
+        return 12f;//maxFontHeight / textureBuffer.height;
     }
 
     BufferedImage getTextureBuffer() {
