@@ -14,4 +14,4 @@
 Arial
 #Courier New
 Noto Naskh Arabic
-Noto Sans CJK SC Regular
+Noto Sans CJK SC
