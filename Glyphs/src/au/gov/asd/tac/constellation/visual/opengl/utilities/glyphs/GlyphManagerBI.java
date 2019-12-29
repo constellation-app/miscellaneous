@@ -46,8 +46,6 @@ public final class GlyphManagerBI implements GlyphManager {
 
     public static final int DEFAULT_BUFFER_TYPE = BufferedImage.TYPE_BYTE_GRAY;
 
-    public static final float SCALING_FACTOR = 7f;
-
     // Where do we draw the text?
     //
     public static final int BASEX = 60;
@@ -60,7 +58,7 @@ public final class GlyphManagerBI implements GlyphManager {
      * An arbitrary number, not too small that we need lots of buffers,
      * but not too large that OpenGL can't cope.
      */
-    public static final int DEFAULT_TEXTURE_BUFFER_SIZE = 512 + 256;
+    public static final int DEFAULT_TEXTURE_BUFFER_SIZE = 2048;
 
     private Font[] fonts;
 
@@ -93,7 +91,7 @@ public final class GlyphManagerBI implements GlyphManager {
     };
 
     public GlyphManagerBI(final String[] fontNames, final int fontSize, final int textureSize) {
-        this(fontNames, Font.PLAIN, fontSize, fontSize, DEFAULT_BUFFER_TYPE);
+        this(fontNames, Font.PLAIN, fontSize, textureSize, DEFAULT_BUFFER_TYPE);
     }
 
     public GlyphManagerBI(final String[] fontNames, final int fontStyle, final int fontSize, final int textureBufferSize, final int bufferType) {
@@ -477,12 +475,12 @@ public final class GlyphManagerBI implements GlyphManager {
 
     @Override
     public float getWidthScalingFactor() {
-        return SCALING_FACTOR;
+        return textureBuffer.width/maxFontHeight;
     }
 
     @Override
     public float getHeightScalingFactor() {
-        return SCALING_FACTOR;
+        return textureBuffer.height/maxFontHeight;
     }
 
     BufferedImage getTextureBuffer() {
