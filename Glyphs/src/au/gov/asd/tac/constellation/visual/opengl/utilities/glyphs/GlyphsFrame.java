@@ -307,6 +307,8 @@ public class GlyphsFrame extends JFrame {
         final boolean drawIndividual = cbIGlyphs.isSelected();
         final boolean drawCombined = cbCGlyphs.isSelected();
         glyphComponent.setBoundaries(drawRuns, drawIndividual, drawCombined);
+        final String line = (String)textLines.getModel().getSelectedItem();
+        glyphComponent.renderTextAsLigatures(line, null);
         repaint();
     }
 
