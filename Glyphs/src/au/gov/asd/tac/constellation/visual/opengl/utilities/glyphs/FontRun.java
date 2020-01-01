@@ -52,11 +52,11 @@ class FontRun {
                     //
                     final Character.UnicodeScript script = Character.UnicodeScript.of(codepoint);
                     if(script.equals(Character.UnicodeScript.LATIN) || script.equals(Character.UnicodeScript.COMMON)) {
-                        System.out.printf("Font: %s %d script:%s block:%s\n", fonts[i].getFontName(), codepoint, Character.UnicodeScript.of(codepoint), Character.UnicodeBlock.of(codepoint));
+//                        System.out.printf("Font: %s %d script:%s block:%s\n", fonts[i].getFontName(), codepoint, Character.UnicodeScript.of(codepoint), Character.UnicodeBlock.of(codepoint));
                         return i;
                     }
                 } else {
-                    System.out.printf("Font: %s %d script:%s block:%s\n", fonts[i].getFontName(), codepoint, Character.UnicodeScript.of(codepoint), Character.UnicodeBlock.of(codepoint));
+//                    System.out.printf("Font: %s %d script:%s block:%s\n", fonts[i].getFontName(), codepoint, Character.UnicodeScript.of(codepoint), Character.UnicodeBlock.of(codepoint));
                     return i;
                 }
             }
