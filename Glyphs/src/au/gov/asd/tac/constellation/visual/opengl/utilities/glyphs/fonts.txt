@@ -14,6 +14,7 @@
 #Ink Free
 Arial
 #Courier New
-Noto Naskh Arabic
+#Noto Naskh Arabic
+Noto Sans Arabic
 #NotoSerifCJKtc-Regular.otf
 NotoSansCJKsc-Regular.otf
