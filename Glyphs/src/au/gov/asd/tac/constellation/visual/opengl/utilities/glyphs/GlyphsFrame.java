@@ -1,5 +1,6 @@
 package au.gov.asd.tac.constellation.visual.opengl.utilities.glyphs;
 
+import au.gov.asd.tac.constellation.visual.opengl.utilities.glyphs.FontInfo.ParsedFontInfo;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -34,7 +35,7 @@ public class GlyphsFrame extends JFrame {
     private final GlyphManagerBI glyphComponent;
     private final JFrame imageFrame;
 
-    public GlyphsFrame(final String[] fontNames, final String[] text) {
+    public GlyphsFrame(final FontInfo[] fontsInfo, final String[] text) {
 
         initComponents();
 
@@ -53,13 +54,18 @@ public class GlyphsFrame extends JFrame {
         imageFrame.setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         textLines.setModel(new DefaultComboBoxModel<>(text));
-        glyphComponent = new GlyphManagerBI(fontNames, Font.PLAIN, GlyphManagerBI.DEFAULT_FONT_SIZE, textureBufferSize, BufferedImage.TYPE_INT_ARGB);
+        glyphComponent = new GlyphManagerBI(fontsInfo, GlyphManagerBI.DEFAULT_FONT_SIZE, textureBufferSize, BufferedImage.TYPE_INT_ARGB);
 
         final GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        final String[] availablefonts = ge.getAvailableFontFamilyNames(Locale.ROOT);
-        Arrays.sort(availablefonts);
+        final String[] availablefonts = Arrays.stream(ge.getAvailableFontFamilyNames(Locale.US))
+                .filter(f -> !f.startsWith("Dialog"))
+                .sorted()
+                .toArray(String[]::new);
+//        Arrays.sort(availablefonts);
         fontNameSp.setModel(new DefaultComboBoxModel<>(availablefonts));
-        fontNameSp.getModel().setSelectedItem(fontNames.length>0 ? fontNames[0] : GlyphManagerBI.DEFAULT_FONT_NAME);
+        if(fontsInfo.length>0) {
+            fontNameSp.getModel().setSelectedItem(fontsInfo[0].fontName);
+        }
 
         fontSizeSp.setValue(GlyphManagerBI.DEFAULT_FONT_SIZE);
         cbActionPerformed();
@@ -313,16 +319,18 @@ public class GlyphsFrame extends JFrame {
     }
 
     private void fontActionPerformed() {
-        final String[] fontNames = glyphComponent.getFonts();
+        final FontInfo[] fontsInfo = glyphComponent.getFonts();
 //        final String[] fontNames = Arrays.stream(fonts).map(f -> f.getFontName()).toArray(String[]::new);
         final String fontName = (String)fontNameSp.getSelectedItem();
-        fontNames[0] = fontName;
-
         final int fontStyle = cbBold.isSelected() ? Font.BOLD : Font.PLAIN;
+//        fontNames[0] = fontName;
+        final FontInfo fi = fontsInfo[0];//.get(0);
+        fontsInfo[0] = new FontInfo(fontName, fontStyle, fi.mustHave, fi.mustNotHave);
+
         final int fontSize = ((SpinnerNumberModel)fontSizeSp.getModel()).getNumber().intValue();
 //        final Font[] newFonts = Arrays.stream(fontNames).map(fn -> new Font(fn, style, fontSize)).toArray(Font[]::new);
 
-        glyphComponent.setFonts(fontNames, fontStyle, fontSize);
+        glyphComponent.setFonts(fontsInfo, fontSize);
         glyphComponent.createBackgroundGlyph(0.5f);
 
         showTextureBuffer();
@@ -332,9 +340,9 @@ public class GlyphsFrame extends JFrame {
         repaint();
     }
 
-    private static String[] loadText(final String fnam) throws IOException {
+    private static String[] loadText(final String fnam, final boolean raw) throws IOException {
         try(final BufferedReader in = new BufferedReader(new InputStreamReader(GlyphsFrame.class.getResourceAsStream(fnam), StandardCharsets.UTF_8))) {
-            final List<String> ls = in.lines().filter(line -> line.length()>0 && !line.startsWith("#")).collect(Collectors.toList());
+            final List<String> ls = in.lines().filter(line -> raw || (line.length()>0 && !line.startsWith("#"))).collect(Collectors.toList());
             final String[] text = ls.toArray(new String[ls.size()]);
 
             for(final String t : text) {
@@ -350,8 +358,18 @@ public class GlyphsFrame extends JFrame {
      */
     public static void main(String args[]) throws IOException {
 
-        final String[] fontNames = loadText("fonts.txt");
-        final String[] text = loadText("text.txt");
+//        final Font ffont = new Font("Flavors", Font.PLAIN, 64);
+//        System.out.printf("font=%s\n", ffont);
+
+        final String[] fontNames = loadText("fonts.txt", true);
+        final String[] text = loadText("text.txt", false);
+
+        final ParsedFontInfo pfi = FontInfo.parseFontInfo(fontNames);
+
+        Arrays.stream(pfi.fontsInfo).forEach(fi -> {System.out.printf("%s\n", fi);});
+        if(!pfi.messages.isEmpty()) {
+            System.out.printf("ParsedFontInfo message: %s\n", pfi.getMessages());
+        }
 
         try {
             /* Set the system look and feel */
@@ -364,7 +382,7 @@ public class GlyphsFrame extends JFrame {
 
         /* Create and display the form */
         EventQueue.invokeLater(() -> {
-            new GlyphsFrame(fontNames, text).setVisible(true);
+            new GlyphsFrame(pfi.fontsInfo, text).setVisible(true);
         });
     }
 

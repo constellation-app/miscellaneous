@@ -12,8 +12,10 @@
 #Lobster
 #Impact
 #Ink Free
-Arial
+#Arial,!ARABIC
+#Arial
 #Courier New
+Parisienne
 #Noto Naskh Arabic
 Noto Sans Arabic
 #NotoSerifCJKtc-Regular.otf
