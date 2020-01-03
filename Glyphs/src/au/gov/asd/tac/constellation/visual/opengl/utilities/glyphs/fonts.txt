@@ -11,11 +11,11 @@
 #Montez
 #Lobster
 #Impact
-#Ink Free
-#Arial,!ARABIC
+#Ink Free,bold
+Arial,!ARABIC
 #Arial
 #Courier New
-Parisienne
+#Scheherazade
 #Noto Naskh Arabic
 Noto Sans Arabic
 #NotoSerifCJKtc-Regular.otf

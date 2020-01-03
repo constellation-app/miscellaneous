@@ -40,6 +40,7 @@ public final class GlyphManagerBI implements GlyphManager {
      * This logical font is always present.
      */
     public static final String DEFAULT_FONT_NAME = Font.SANS_SERIF;
+    public static final int DEFAULT_FONT_STYLE = Font.PLAIN;
     public static final int DEFAULT_FONT_SIZE = 64;
 //    public static final Font DEFAULT_FONT = new Font(DEFAULT_FONT_NAME, Font.PLAIN, DEFAULT_FONT_SIZE);
 
@@ -181,20 +182,12 @@ public final class GlyphManagerBI implements GlyphManager {
         final Optional<FontInfo> hasDefault = Arrays.stream(fontsInfo).filter(fil -> fil.fontName.trim().toLowerCase().equals(DEFAULT_FONT_NAME.toLowerCase())).findFirst();
         if(!hasDefault.isPresent()) {
             this.fontsInfo = Arrays.copyOf(fontsInfo, fontsInfo.length+1);
-            this.fontsInfo[this.fontsInfo.length-1] = new FontInfo(DEFAULT_FONT_NAME, DEFAULT_FONT_SIZE, null, null);
-//            fontInfoList.add(new FontInfo(DEFAULT_FONT_NAME, DEFAULT_FONT_SIZE, null, null));
+            this.fontsInfo[this.fontsInfo.length-1] = new FontInfo(DEFAULT_FONT_NAME, DEFAULT_FONT_STYLE, DEFAULT_FONT_SIZE, null, null);
         } else {
             this.fontsInfo = Arrays.copyOf(fontsInfo, fontsInfo.length);
         }
 
-        this.fontsInfo = Arrays.stream(this.fontsInfo)
-            .filter(fil -> {
-                System.out.printf("**** %s\n", fil);
-                fil.setFont(fontSize);
-                return fil.font!=null;
-            })
-            .toArray(FontInfo[]::new);
-        for(int i=0; i<fontsInfo.length; i++) {
+        for(int i=0; i<this.fontsInfo.length; i++) {
             LOGGER.info(String.format("Font %d: %s", i, this.fontsInfo[i]));
         }
 

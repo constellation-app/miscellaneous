@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,17 +25,49 @@ public class FontInfo {
     final int fontStyle;
     final Set<Character.UnicodeScript> mustHave;
     final Set<Character.UnicodeScript> mustNotHave;
-    Font font;
+    final Font font;
 
-    public FontInfo(final String fontName, final int fontStyle, final Set<Character.UnicodeScript> mustHave, final Set<Character.UnicodeScript> mustNotHave) {
+    public FontInfo(final String fontName, final int fontStyle, final Set<Character.UnicodeScript> mustHave, final Set<Character.UnicodeScript> mustNotHave, final Font font) {
         this.fontName = fontName;
         this.fontStyle = fontStyle;
         this.mustHave = mustHave!=null ? mustHave : Collections.emptySet();
         this.mustNotHave = mustNotHave!=null ? mustNotHave : Collections.emptySet();
-        this.font = null;
+        this.font = font;
     }
 
-    public void setFont(final int fontSize) {
+    public FontInfo(final String fontName, final int fontStyle, final int fontSize, final Set<Character.UnicodeScript> mustHave, final Set<Character.UnicodeScript> mustNotHave) {
+        this(fontName, fontStyle, mustHave, mustNotHave, getFont(fontName, fontStyle, fontSize));
+//        this.fontName = fontName;
+//        this.fontStyle = fontStyle;
+//        this.mustHave = mustHave!=null ? mustHave : Collections.emptySet();
+//        this.mustNotHave = mustNotHave!=null ? mustNotHave : Collections.emptySet();
+//        this.font = getFont(fontName, fontStyle, fontSize);
+    }
+
+//    public void setFont(final int fontSize) {
+//        if(fontName.toLowerCase().endsWith(".otf")) {
+//            File otfFile = getOtfFont(fontName);
+//            if(otfFile!=null) {
+//                LOGGER.info(String.format("Reading OTF font from %s", otfFile));
+//                try {
+//                    final Font otf = Font.createFont(Font.TRUETYPE_FONT, otfFile);
+//                    font = otf.deriveFont(fontStyle, fontSize);
+//                }
+//                catch(final FontFormatException | IOException ex) {
+//                    LOGGER.log(Level.SEVERE, String.format("Can't load OTF font %s from %s", fontName, otfFile), ex);
+//                    font = null;
+//                }
+//            } else {
+//                LOGGER.info(String.format("OTF file %s not found", otfFile));
+//                font = null;
+//            }
+//        } else {
+//            font = new Font(fontName, fontStyle, fontSize);
+//        }
+//    }
+
+    private static Font getFont(final String fontName, final int fontStyle, final int fontSize) {
+        Font font = null;
         if(fontName.toLowerCase().endsWith(".otf")) {
             File otfFile = getOtfFont(fontName);
             if(otfFile!=null) {
@@ -44,22 +77,54 @@ public class FontInfo {
                     font = otf.deriveFont(fontStyle, fontSize);
                 }
                 catch(final FontFormatException | IOException ex) {
-                    LOGGER.log(Level.SEVERE, String.format("Can't load OTF font %s from %s", fontName, otfFile), ex);
-                    font = null;
+                    final String msg = String.format("Can't load OTF font %s from %s", fontName, otfFile);
+                    LOGGER.log(Level.SEVERE, msg, ex);
+                    throw new IllegalArgumentException(msg);
                 }
             } else {
-                LOGGER.info(String.format("OTF file %s not found", otfFile));
-                font = null;
+                final String msg = String.format("OTF file %s not found", otfFile);
+                LOGGER.info(msg);
+                throw new IllegalArgumentException(msg);
             }
         } else {
             font = new Font(fontName, fontStyle, fontSize);
         }
+
+        if(font.getFamily(Locale.US).equals(Font.DIALOG)) {
+            // From the Javadoc:
+            // If the name parameter represents something other
+            // than a logical font, i.e. is interpreted as a
+            // physical font face or family, and this cannot be
+            // mapped by the implementation to a physical font
+            // or a compatible alternative, then the font system
+            // will map the Font instance to "Dialog", such that
+            // for example, the family as reported by getFamily
+            // will be "Dialog".
+            //
+            throw new IllegalArgumentException(String.format("Font %s is not available", fontName));
+        }
+
+        return font;
     }
 
+    /**
+     * Determine if a codepoint can (or should) be displayed by this font.
+     * <p>
+     *
+     * @param codepoint A Unicode codepoint.
+     *
+     * @return True if the font will display the codepoint, false otherwise.
+     */
     public boolean canDisplay(final int codepoint) {
         if(font.canDisplay(codepoint)) {
             final Character.UnicodeScript script = Character.UnicodeScript.of(codepoint);
-            if(mustHave.contains(script) || !mustNotHave.contains(script)) {
+            if(!mustHave.isEmpty() && mustHave.contains(script)) {
+                return true;
+            }
+            else if(!mustNotHave.isEmpty() && !mustNotHave.contains(script)) {
+                return true;
+            }
+            else if(mustHave.isEmpty() && mustNotHave.isEmpty()) {
                 return true;
             }
         }
@@ -127,10 +192,11 @@ public class FontInfo {
      * Parse lines of a string to find fontName[,bold|plain|block]... for each line.
      *
      * @param lines
+     * @param fontSize
      *
      * @return
      */
-    public static ParsedFontInfo parseFontInfo(final String[] lines) {
+    public static ParsedFontInfo parseFontInfo(final String[] lines, final int fontSize) {
         final List<FontInfo> fiList = new ArrayList<>();
         final List<String> messages = new ArrayList<>();
 
@@ -182,10 +248,13 @@ public class FontInfo {
                 }
 
                 if(ok) {
-                    final FontInfo fi = new FontInfo(fontName, fontStyle, mustHave, mustNotHave);
-                    fiList.add(fi);
-                } else {
-                    System.out.printf("!!!! %s\n", messages);
+                    try {
+                        final Font font = getFont(fontName, fontStyle, fontSize);
+                        final FontInfo fi = new FontInfo(fontName, fontStyle, mustHave, mustNotHave, font);
+                        fiList.add(fi);
+                    } catch(final IllegalArgumentException ex) {
+                        messages.add(ex.getMessage());
+                    }
                 }
             }
         }
