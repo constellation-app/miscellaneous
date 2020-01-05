@@ -65,7 +65,7 @@ class FontRun {
             }
         }
 
-        LOGGER.warning(String.format("Font not found for codepoint %d", codepoint));
+        LOGGER.warning(String.format("Font not found for codepoint U+%04X (%d.)", codepoint, codepoint));
 
         // If no font could display this codepoint, return the default font anyway.
         // TODO Figure out a way of displaying the missing glyph (U+FFFD) instead of a box.

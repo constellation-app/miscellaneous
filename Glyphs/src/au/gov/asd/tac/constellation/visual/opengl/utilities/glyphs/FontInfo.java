@@ -68,7 +68,7 @@ public class FontInfo {
 
     private static Font getFont(final String fontName, final int fontStyle, final int fontSize) {
         Font font = null;
-        if(fontName.toLowerCase().endsWith(".otf")) {
+        if(fontName.toLowerCase().endsWith(".otf") || fontName.toLowerCase().endsWith(".ttf")) {
             File otfFile = getOtfFont(fontName);
             if(otfFile!=null) {
                 LOGGER.info(String.format("Reading OTF font from %s", otfFile));
@@ -101,7 +101,7 @@ public class FontInfo {
             // for example, the family as reported by getFamily
             // will be "Dialog".
             //
-            throw new IllegalArgumentException(String.format("Font %s is not available", fontName));
+            throw new IllegalArgumentException(String.format("Font '%s' is not available", fontName));
         }
 
         return font;
