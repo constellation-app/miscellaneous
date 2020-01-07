@@ -19,7 +19,6 @@ Arial,!ARABIC
 #Noto Sans Arabic
 #NotoSerifCJKtc-Regular.otf
 #NotoSansCJKsc-Regular.otf
-#Noto Sans Kannada
-#NotoSansKannada-Regular.ttf
-#NotoSansEgyptianHieroglyphs-Regular.ttf,BOLD
+NotoSansKannada-Regular.ttf
+NotoSansEgyptianHieroglyphs-Regular.ttf,BOLD
 #NotoEmoji-Regular.ttf
