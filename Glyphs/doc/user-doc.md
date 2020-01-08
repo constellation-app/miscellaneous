@@ -1,10 +1,10 @@
 # CONSTELLATION and fonts
 
-CONSTELLATION uses the fonts installed on your workstation to draw node and connection labels on graphs. More than one font can be used, depending on the text being displayed. This document explains how you can choose the fonts use by CONSTELLATION to draw labels.
+CONSTELLATION uses the fonts installed on your workstation to draw node and connection labels on graphs. More than one font can be used, depending on the text being displayed. This document explains how you can choose the fonts use by CONSTELLATION to draw labels. (Some of the Unicode terminology may be a bit imprecise.)
 
-By default, CONSTELLATION uses a Java built-in font called "SansSerif", which typically represents the font "Arial" on Windows 10. When you run CONSTELLATION and add a node to a graph, it will look like this.
+By default, CONSTELLATION uses a Java built-in font called "SansSerif", which typically represents the font "Arial" on Windows 10. When you run CONSTELLATION and add a node to a graph, the label will look like this.
 
-![SansSerif](user1-sansserif.png)
+![default](user1-sansserif.png)
 
 The Arial font is easy to read. If all of your labels consist of Latin alphabetic characters, digits, and punctuation (basically anything in the Latin-1 character set), and you're happy with Arial, you can stop reading now.
 
@@ -14,9 +14,11 @@ You night like a font that looks a little bolder. If you go to Setup &rarr; Opti
 Arial,BOLD
 ```
 
+(Whenever you edit the font configuration, you should press the "Check config" button to make sure you haven't made any typos.)
+
 Select OK, save your graph, restart CONSTELLATION, and reload your graph. It should look like this.
 
-![ArialBold](user1-arial-bold.png)
+![Arial,BOLD](user1-arial-bold.png)
 
 If you prefer something with serifs, try "Times New Roman". Go to the font configuration page again, and replace the Arial text with
 
@@ -26,7 +28,7 @@ Times New Roman
 
 After restarting CONSTELLATION, you should see this.
 
-![TimesNewRoman](user1-timesnewroman.png)
+![Times New Roman](user1-timesnewroman.png)
 
 Let's go back to Arial by opening the font configuration page and replacing "Times New Roman" with "Arial". (You can use "Arial,BOLD" if you like.) Retart CONSTELLATION, open your graph, and add a node with the label "User 5" in Chinese.
 
@@ -129,8 +131,22 @@ Noto Sans Arabic
 NotoSansCJKsc-Regular.otf
 ```
 
-The first line here says to use Times New Roman, but only for LATIN and COMMON script, where LATIN is the familiar "ABC" script, and COMMON is puctuation, symbols, etc. "LATIN,COMMON" isn't quite the same thing as "!ARABIC" (since "!ARABIC" means all scripts including LATIN and COMMON except ARABIC), but in this case it works the same.
+The first line here says to use Times New Roman, but only for LATIN and COMMON script, where LATIN is the familiar "ABC" script, and COMMON is punctuation, symbols, etc. "LATIN,COMMON" isn't quite the same thing as "!ARABIC" (since "!ARABIC" means all scripts including LATIN and COMMON except ARABIC), but in this case it works the same.
 
 The "Font" and "Script" combo boxes on the font configuration page show all the available fonts, and the scripts that can be used to limit the characters shown by those fonts.
 
 The "Check config" button can be used to ensure that you've entered legal fonts and scripts.
+
+Because CONSTELLATION uses a list of fonts, rather than relying on a single font, you can display all kinds of scripts in labels. The graph below uses Latin, Arabic, Chinese, Cyrillic, Egyptian hieroglyphics, Zalgo text, and of course some good old table flipping.
+
+![fonts](fonts.png)
+
+You can even use fancy fonts such as Ink Free (included with Windows 10).
+
+![inkfree](inkfree.png)
+
+Or Lobster Two (downloadable from https://fonts.google.com/).
+
+![lobstertwo](lobstertwo.png)
+
+However, you can't use different fonts for the same script: if you have Latin labels, you can't have Times New Roman for a name and Arial for a type, or a Times New Roman label on one node and an Arial label on another node. (Or connection, for that matter.)
