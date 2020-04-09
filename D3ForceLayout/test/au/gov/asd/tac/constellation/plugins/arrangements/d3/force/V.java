@@ -28,6 +28,8 @@ public class V implements IVertex {
     private double xVelocity;
     private double yVelocity;
 
+    private String label;
+
     public V(final double x, final double y) {
         this(x, y, 1f);
     }
@@ -38,6 +40,8 @@ public class V implements IVertex {
         this.radius = radius;
         xVelocity = 0;
         yVelocity = 0;
+
+        label = null;
     }
 
     @Override
@@ -93,6 +97,14 @@ public class V implements IVertex {
     @Override
     public void setYVelocity(double vy) {
         this.yVelocity = vy;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(final String label) {
+        this.label = label;
     }
 
     public static V v(final double x, double y) {

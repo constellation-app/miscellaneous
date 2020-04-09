@@ -76,7 +76,9 @@ public final class Simulation {
     void step() {
         while(alpha>=alphaMin) {
             tick(1);
-//            alpha = 0; // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//            if(alpha<=0.1) {//772372209558107) {
+//                System.out.printf("@@ alpha=%s\n", alpha); alpha = 0; System.out.printf("@@ alpha=0\n"); // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//            }
         }
     }
 
@@ -89,7 +91,7 @@ public final class Simulation {
                 force.force(alpha);
             });
 
-            int[] _i = new int[1];
+//            int[] _i = new int[1];
             vxs.forEach(vx -> {
 //                System.out.printf("@@vel %s %s\n", vx.getXVelocity(), vx.getYVelocity());
                 vx.setXVelocity(vx.getXVelocity() * velocityDecay);
@@ -98,7 +100,7 @@ public final class Simulation {
                 vx.setYVelocity(vx.getYVelocity() * velocityDecay);
                 vx.setY(vx.getY() + vx.getYVelocity());
 
-                System.out.printf("@@tick %s %s %s\n", _i[0]++, vx.getX(), vx.getY());
+//                System.out.printf("@@tick %s %s %s\n", _i[0]++, vx.getX(), vx.getY());
             });
             System.out.printf("\n");
         }
