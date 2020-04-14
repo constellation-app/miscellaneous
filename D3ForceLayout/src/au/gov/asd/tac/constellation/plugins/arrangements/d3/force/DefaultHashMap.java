@@ -21,6 +21,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * A HashMap that automatically adds and returns a new instance of
+ * its value class if the key in get() has no existing value.
+ *
+ * @param <K> the type of keys maintained by this map
+ * @param <V> the type of mapped values
  *
  * @author algol
  */
@@ -34,7 +39,7 @@ public class DefaultHashMap<K, V> extends HashMap<K, V> {
 
     @Override
     public V get(final Object k) {
-        if(!containsKey(k)) {
+        if(!containsKey((K)k)) {
             try {
                 super.put((K)k, defaultClass.getDeclaredConstructor().newInstance());
             } catch(final NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {

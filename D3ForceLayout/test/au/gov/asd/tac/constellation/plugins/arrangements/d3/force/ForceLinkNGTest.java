@@ -15,7 +15,9 @@
  */
 package au.gov.asd.tac.constellation.plugins.arrangements.d3.force;
 
-import au.gov.asd.tac.constellation.plugins.arrangements.d3.force.TestUtil.Graph;
+import au.gov.asd.tac.constellation.plugins.arrangements.d3.force.TestUtil.TGraph;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import org.testng.annotations.Test;
 
 /**
@@ -25,14 +27,14 @@ import org.testng.annotations.Test;
 public class ForceLinkNGTest {
     @Test(description="Read graph")
     public void readGraph() {
-        final Graph graph = TestUtil.readGraph(getClass().getResourceAsStream("miserables.txt"));
+        final TGraph graph = TestUtil.readGraph(getClass().getResourceAsStream("miserables.txt"));
         final ForceLink forceLink = new ForceLink(graph.links);
         forceLink.initialise(graph.vxs);
     }
 
     @Test(description="Layout")
-    public void layout() {
-        final Graph graph = TestUtil.readGraph(getClass().getResourceAsStream("miserables.txt"));
+    public void layout() throws FileNotFoundException {
+        final TGraph graph = TestUtil.readGraph(getClass().getResourceAsStream("miserables.txt"));
 
         final Simulation sim = new Simulation(graph.vxs);
         sim.addForce("link", new ForceLink(graph.links));
@@ -50,5 +52,27 @@ public class ForceLinkNGTest {
             final V v = (V)vx;
             System.out.printf("%s,%s,%s\n", v.getLabel().replace(".", ""), v.getX(), v.getY());
         }
+
+        TestUtil.writePointsXY(graph, "D:/tmp/lesmiserables-xy.txt", false);
+
+//        try(final PrintWriter out = new PrintWriter("D:/tmp/lesmiserables-xy.txt")) {
+//            graph.vxs.forEach(vx -> {
+//                final V v = (V)vx;
+//                out.printf("%s,%s,%s\n", v.getLabel().replace(".", ""), v.getX(), v.getY());
+//            });
+//        }
+    }
+
+    @Test(description="Layout tree graph")
+    public void layoutTree() throws FileNotFoundException {
+        final TGraph graph = TestUtil.buildTreeGraph(1000);
+
+        final Simulation sim = new Simulation(graph.vxs);
+        sim.addForce("link", new ForceLink(graph.links));
+        sim.addForce("charge", new ForceManyBody());
+        sim.addForce("centre", new ForceCentre(0, 0));
+        sim.step();
+
+        TestUtil.writePointsXY(graph, "D:/tmp/tree-xy.txt", true);
     }
 }

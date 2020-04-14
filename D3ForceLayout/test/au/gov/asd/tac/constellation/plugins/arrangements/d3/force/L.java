@@ -16,7 +16,8 @@
 package au.gov.asd.tac.constellation.plugins.arrangements.d3.force;
 
 /**
- *
+ * An implementation of ILink sufficient for unit testing.
+ * 
  * @author algol
  */
 public class L implements ILink {

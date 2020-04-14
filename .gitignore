@@ -26,3 +26,6 @@ Glyphs/build/*
 Glyphs/nbproject/private/*
 !DependencyJars/*.jar
 /Glyphs/dist/
+
+**/.ipynb_checkpoints/
+**/nbproject/private/

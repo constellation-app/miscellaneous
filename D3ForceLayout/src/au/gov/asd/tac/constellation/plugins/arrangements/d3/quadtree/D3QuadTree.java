@@ -16,11 +16,18 @@
 package au.gov.asd.tac.constellation.plugins.arrangements.d3.quadtree;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 /**
+ * A port of the D3 quadtree at https://github.com/d3/d3-quadtree/.
+ * <p>
+ * A quadtree recursively partitions two-dimensional space into squares,
+ * dividing each square into four equally-sized squares. Each distinct point
+ * exists in a unique leaf node; coincident points are represented by
+ * a linked list. Quadtrees can accelerate various spatial operations,
+ * such as the Barnes–Hut approximation for computing many-body forces,
+ * collision detection, and searching for nearby points.
  *
  * @author algol
  */
@@ -57,6 +64,22 @@ public class D3QuadTree {
         return cover(x0, y0).cover(x1, y1);
     }
 
+    /**
+     * Expands the quadtree to cover the specified point ⟨x,y⟩, and returns the quadtree.
+     * <p>
+     * If the quadtree’s extent already covers the specified point,
+     * this method does nothing. If the quadtree has an extent,
+     * the extent is repeatedly doubled to cover the specified point,
+     * wrapping the root node as necessary; if the quadtree is empty,
+     * the extent is initialized to the extent [[⌊x⌋, ⌊y⌋], [⌈x⌉, ⌈y⌉]].
+     * (Rounding is necessary such that if the extent is later doubled,
+     * the boundaries of existing quadrants do not change due to floating point error.)
+     *
+     * @param x X.
+     * @param y Y.
+     *
+     * @return The quadtree.
+     */
     public D3QuadTree cover(final double x, final double y) {
         if(Double.isNaN(x) || Double.isNaN(y)) {
             // Ignore invalid points.
@@ -113,6 +136,18 @@ public class D3QuadTree {
         return this;
     }
 
+    /**
+     * Add a point to the quadtree.
+     * <p>
+     * If the new point is outside the current extent of the quadtree,
+     * the quadtree is automatically expanded to cover the new point.
+     * <p>
+     * If possible, use the add(List&lt;IPoint&gt;) method instead
+     *
+     * @param point The point to be added.
+     *
+     * @return The quadtree.
+     */
     public D3QuadTree add(final IPoint point) {
         return add(cover(point.getX(), point.getY()), point);
     }
@@ -218,6 +253,17 @@ public class D3QuadTree {
         return tree;
     }
 
+    /**
+     * Adds the specified list of points to the quadtree.
+     * <p>
+     * This is approximately equivalent to calling add(IPoint) repeatedly,
+     * but, this method results in a more compact quadtree because
+     * the extent of the data is computed first before adding the data.
+     *
+     * @param vxs The list of points to be added.
+     *
+     * @return The quadtree.
+     */
     public D3QuadTree add(final List<IPoint> vxs) {
         double x0 = Double.POSITIVE_INFINITY;
         double y0 = Double.POSITIVE_INFINITY;
@@ -260,10 +306,32 @@ public class D3QuadTree {
         return this;
     }
 
+    /**
+     * Returns the IPoint closest to the position ⟨x,y⟩.
+     * <p>
+     * An infinite radius is used. If there is no point within the search area,
+     * returns null
+     * .
+     * @param x X.
+     * @param y Y.
+     *
+     * @return An IPoint, or null if there are no points in the quadtree.
+     */
     public IPoint find(final double x, final double y) {
         return find(x, y, Double.POSITIVE_INFINITY);
     }
 
+    /**
+     * Returns the IPoint closest to the position ⟨x,y⟩ with the given search radius.
+     * <p>
+     * If there is no point within the search area, returns null.
+     *
+     * @param x X.
+     * @param y Y.
+     * @param radius Radius.
+     *
+     * @return An IPoint, or null if there is no point within the radius.
+     */
     public IPoint find(final double x, final double y, final double radius) {
         final List<D3Quad> quads = new ArrayList<>();
         D3QuadNode node = root;
@@ -344,6 +412,30 @@ public class D3QuadTree {
         return data;
     }
 
+    /**
+     * Visits each node in the quadtree in pre-order traversal,
+     * calling the specified visitor for each node.
+     * <p>
+     * The visitor is called with a D3QuadNode, containing the node being visited,
+     * ⟨x0, y0⟩ the lower bounds of the node, and ⟨x1, y1⟩  the upper bounds.
+     * (Assuming that positive x is right and positive y is down,
+     * as is typically the case in HTML Canvas and SVG, ⟨x0, y0⟩ is
+     * the top-left corner and ⟨x1, y1⟩ is the lower-right corner;
+     * however, the coordinate system is arbitrary, so more formally
+     * x0 &lt;= x1 and y0 &lt;= y1.)
+     * <p>
+     * If the callback returns true for a given node, then the children of
+     * that node are not visited; otherwise, all child nodes are visited.
+     * This can be used to quickly visit only parts of the tree,
+     * for example when using the Barnes–Hut approximation.
+     * Note, however, that child quadrants are always visited in sibling order:
+     * top-left, top-right, bottom-left, bottom-right. In cases such as search,
+     * visiting siblings in a specific order may be faster.
+     *
+     * @param visitor A callback instance.
+     *
+     * @return The quadtree.
+     */
     public D3QuadTree visit(final D3Visitor visitor) {
         final List<D3Quad> quads = new ArrayList<>();
         D3QuadNode node = root;
@@ -371,6 +463,23 @@ public class D3QuadTree {
         return this;
     }
 
+    /**
+     * Visit each node in the quadtree in post-order traversal,
+     * calling the specified visitor for each node.
+     * <p>
+     * The visitor is called with a D3QuadNode, containing the node being visited,
+     * ⟨x0, y0⟩ the lower bounds of the node, and ⟨x1, y1⟩  the upper bounds.
+     * <p>
+     * (Assuming that positive x is right and positive y is down,
+     * as is typically the case in HTML Canvas and SVG, ⟨x0, y0⟩ is
+     * the top-left corner and ⟨x1, y1⟩ is the lower-right corner;
+     * however, the coordinate system is arbitrary, so more formally
+     * x0 &lt;= x1 and y0 &lt;= y1.)
+     *
+     * @param visitor A callback instance.
+     *
+     * @return The quadtree.
+     */
     public D3QuadTree visitAfter(final D3AfterVisitor visitor) {
         final List<D3Quad> quads = new ArrayList<>();
         final List<D3Quad> next = new ArrayList<>();
@@ -428,7 +537,7 @@ public class D3QuadTree {
             final Object[] pair = nodes.remove(nodes.size()-1);
             final D3QuadNode source = (D3QuadNode)pair[0];
             final D3QuadNode target = (D3QuadNode)pair[1];
-            for(int ix = 0; ix<4; ix++) {
+            for(int ix = 0; ix<D3QuadNode.NQUADS; ix++) {
                 final D3QuadNode child = source.getNode(ix);
                 if(child!=null) {
                     if(!child.isLeaf()) {
@@ -443,6 +552,15 @@ public class D3QuadTree {
         return copy;
     }
 
+    /**
+     * Removes the specified point from the quadtree.
+     * <p>
+     * If the point does not exist in the quadtree, this method does nothing.
+     *
+     * @param vx The point to be removed.
+     *
+     * @return The quadtree.
+     */
     public D3QuadTree remove(final IPoint vx) {
         D3QuadNode node = root;
         if(root==null) {
@@ -543,7 +661,7 @@ public class D3QuadTree {
         // If the parent now contains exactly one leaf, collapse superfluous parents.
         //
         int notNull = 0;
-        for(int ix=0; ix<4; ix++) {
+        for(int ix=0; ix<D3QuadNode.NQUADS; ix++) {
             if(parent.getNode(ix)!=null) {
                 node = parent.getNode(ix);
                 notNull++;
@@ -561,6 +679,15 @@ public class D3QuadTree {
         return this;
     }
 
+    /**
+     * Removes the list of points from the quadtree.
+     * <p>
+     * If a point does not exist in the quadtree, it is ignored.
+     *
+     * @param vxs A list of points to be removed.
+     *
+     * @return The quadtree.
+     */
     public D3QuadTree remove(final List<IPoint> vxs) {
         vxs.forEach(this::remove);
 

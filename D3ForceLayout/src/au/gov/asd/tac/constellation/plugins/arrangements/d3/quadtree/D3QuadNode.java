@@ -56,9 +56,6 @@ public class D3QuadNode {
     private final D3QuadNode[] nodes;
     private final List<IPoint> data;
 
-//    private float x;
-//    private float y;
-
     /**
      * An arbitrary value to be used by anything.
      */

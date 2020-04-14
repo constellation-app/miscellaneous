@@ -232,4 +232,44 @@ public class ForceManyBody implements Force {
             return false;
         }
     }
+
+    public double getStrength() {
+        return strength;
+    }
+
+    public ForceManyBody setStrength(final double strength) {
+        this.strength = strength;
+
+        return this;
+    }
+
+    public double getDistanceMin() {
+        return Math.sqrt(distanceMin2);
+    }
+
+    public ForceManyBody setDistanceMin(final double distanceMin) {
+        this.distanceMin2 = distanceMin * distanceMin;
+
+        return this;
+    }
+
+    public double getDistanceMax() {
+        return Math.sqrt(distanceMax2);
+    }
+
+    public ForceManyBody setDistanceMax(final double distanceMax) {
+        this.distanceMax2 = distanceMax * distanceMax;
+
+        return this;
+    }
+
+    public double getTheta() {
+        return Math.sqrt(theta2);
+    }
+
+    public ForceManyBody setTheta(final double theta) {
+        this.theta2 = theta * theta;
+
+        return this;
+    }
 }

@@ -29,7 +29,7 @@ public final class Simulation {
     private double alphaDecay;
     private double alphaTarget;
     private double velocityDecay;
-    private LinkedHashMap<String, Force> forces;
+    private final LinkedHashMap<String, Force> forces;
 
     final double initialRadius = 10;
     final double initalAngle = Math.PI * (3-Math.sqrt(5));
@@ -105,4 +105,55 @@ public final class Simulation {
             System.out.printf("\n");
         }
     }
+
+    public double getAlpha() {
+        return alpha;
+    }
+
+    public Simulation setAlpha(final double alpha) {
+        this.alpha = alpha;
+
+        return this;
+    }
+
+    public double getAlphaMin() {
+        return alphaMin;
+    }
+
+    public Simulation setAlphaMin(final double alphaMin) {
+        this.alphaMin = alphaMin;
+
+        return this;
+    }
+
+    public double getAlphaDecay() {
+        return alphaDecay;
+    }
+
+    public Simulation setAlphaDecay(final double alphaDecay) {
+        this.alphaDecay = alphaDecay;
+
+        return this;
+    }
+
+    public double getAlphaTarget() {
+        return alphaTarget;
+    }
+
+    public Simulation setAlphaTarget(final double alphaTarget) {
+        this.alphaTarget = alphaTarget;
+
+        return this;
+    }
+
+    public double getVelocityDecay() {
+        return velocityDecay;
+    }
+
+    public Simulation setVelocityDecay(final double velocityDecay) {
+        this.velocityDecay = velocityDecay;
+
+        return this;
+    }
+
 }

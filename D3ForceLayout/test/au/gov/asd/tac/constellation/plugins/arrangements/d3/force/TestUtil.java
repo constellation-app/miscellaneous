@@ -18,9 +18,11 @@ package au.gov.asd.tac.constellation.plugins.arrangements.d3.force;
 import static au.gov.asd.tac.constellation.plugins.arrangements.d3.force.L.l;
 import static au.gov.asd.tac.constellation.plugins.arrangements.d3.force.V.v;
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,17 +35,22 @@ import java.util.logging.Logger;
  * @author algol
  */
 public class TestUtil {
-    public static class Graph {
+    /**
+     * A graph for testing stuff.
+     * <p>
+     * Totally nothing to do with CONSTELLATION's Graph.
+     */
+    public static class TGraph {
         final List<IVertex> vxs;
         final List<ILink> links;
 
-        public Graph(final List<IVertex> vxs, final List<ILink> links) {
+        public TGraph(final List<IVertex> vxs, final List<ILink> links) {
             this.vxs = vxs;
             this.links = links;
         }
     }
 
-    public static Graph readGraph(final InputStream in) {
+    public static TGraph readGraph(final InputStream in) {
         final Map<String, IVertex> vxMap = new HashMap<>();
         final List<IVertex> vxs = new ArrayList<>();
         final List<ILink> links = new ArrayList<>();
@@ -67,6 +74,46 @@ public class TestUtil {
             Logger.getLogger(TestUtil.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return new Graph(vxs, links);
+        return new TGraph(vxs, links);
+    }
+
+    public static TGraph buildTreeGraph(final int n) {
+        final List<IVertex> vxs = new ArrayList<>();
+        final List<ILink> links = new ArrayList<>();
+
+        final V root = v(Double.NaN, Double.NaN);
+        root.setLabel("root");
+        vxs.add(root);
+
+        for(int i=0; i<n; i++) {
+            final V vx0 = v(Double.NaN, Double.NaN);
+            vx0.setLabel(String.format("v%d", i*2));
+            vxs.add(vx0);
+
+            final V vx1 = v(Double.NaN, Double.NaN);
+            vx1.setLabel(String.format("v%d", i*2+1));
+            vxs.add(vx1);
+
+            final IVertex parent = vxs.get(i);
+            links.add(l(parent, vx0));
+            links.add(l(parent, vx1));
+        }
+
+        return new TGraph(vxs, links);
+    }
+
+    static void writePointsXY(final TGraph graph, final String fnam, final boolean includeLinks) throws FileNotFoundException {
+        try(final PrintWriter out = new PrintWriter("D:/tmp/lesmiserables-xy.txt")) {
+            graph.vxs.forEach(vx -> {
+                final V v = (V)vx;
+                out.printf("%s,%s,%s\n", v.getLabel().replace(".", ""), v.getX(), v.getY());
+            });
+
+            if(includeLinks) {
+                graph.links.forEach(link -> {
+                    out.printf("-,%s,%s", ((V)link.getSource()).getLabel(), ((V)link.getTarget()).getLabel());
+                });
+            }
+        }
     }
 }

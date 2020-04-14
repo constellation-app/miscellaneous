@@ -16,7 +16,7 @@
 package au.gov.asd.tac.constellation.plugins.arrangements.d3.quadtree;
 
 /**
- * An implementation of IVertex sufficient for testing.
+ * An implementation of IPoint sufficient for unit testing.
  *
  * @author algol
  */
