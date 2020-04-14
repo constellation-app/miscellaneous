@@ -102,7 +102,6 @@ public final class Simulation {
 
 //                System.out.printf("@@tick %s %s %s\n", _i[0]++, vx.getX(), vx.getY());
             });
-            System.out.printf("\n");
         }
     }
 

@@ -16,7 +16,6 @@
 package au.gov.asd.tac.constellation.plugins.arrangements.d3.force;
 
 import static au.gov.asd.tac.constellation.plugins.arrangements.d3.force.Util.jiggle;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,10 +36,18 @@ public class ForceLink implements Force {
     private double distance;
     private int iterations;
 
+    // The default strength is a method.
+    // (Javascript is much looser about these things than Java.)
+    // We want to use defaultStrength() by default, but a constant if neccessary.
+    // Worry about more flexibility when we need it.
+    //
+    private Double strength;
+
     public ForceLink(final List<ILink> links) {
         this.links = links;
         distance = 30;
         iterations = 1;
+        strength = null;
     }
 
     @Override
@@ -108,8 +115,9 @@ public class ForceLink implements Force {
     }
 
     void initialiseStrength() {
+        System.out.printf("@@strength %s\n", strength);
         for(int i=0; i<links.size(); i++) {
-            strengths[i] = defaultStrength(links.get(i));
+            strengths[i] = strength==null ? defaultStrength(links.get(i)) : strength;
         }
     }
 
@@ -118,4 +126,35 @@ public class ForceLink implements Force {
             distances[i] = distance;
         }
     }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    public ForceLink setDistance(final double distance) {
+        this.distance = distance;
+
+        return this;
+    }
+
+    public Double getStrength() {
+        return strength;
+    }
+
+    public ForceLink setStrength(final double strength) {
+        this.strength = strength;
+
+        return this;
+    }
+
+    public int getIterations() {
+        return iterations;
+    }
+
+    public ForceLink setIterations(final int iterations) {
+        this.iterations = iterations;
+
+        return this;
+    }
+
 }

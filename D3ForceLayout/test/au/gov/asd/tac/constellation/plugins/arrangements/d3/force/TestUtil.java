@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -77,7 +78,7 @@ public class TestUtil {
         return new TGraph(vxs, links);
     }
 
-    public static TGraph buildTreeGraph(final int n) {
+    public static TGraph buildTreeGraph(final int n, final int maxChildren) {
         final List<IVertex> vxs = new ArrayList<>();
         final List<ILink> links = new ArrayList<>();
 
@@ -85,25 +86,25 @@ public class TestUtil {
         root.setLabel("root");
         vxs.add(root);
 
+        final Random r = new Random();
         for(int i=0; i<n; i++) {
-            final V vx0 = v(Double.NaN, Double.NaN);
-            vx0.setLabel(String.format("v%d", i*2));
-            vxs.add(vx0);
-
-            final V vx1 = v(Double.NaN, Double.NaN);
-            vx1.setLabel(String.format("v%d", i*2+1));
-            vxs.add(vx1);
-
             final IVertex parent = vxs.get(i);
-            links.add(l(parent, vx0));
-            links.add(l(parent, vx1));
+//            final int nChildren = r.nextInt(maxChildren) + 1;
+            final int nChildren = i<n/2 ? 3 : 10;
+            for(int j=0; j<nChildren; j++) {
+                final V vx = v(Double.NaN, Double.NaN);
+                vx.setLabel(String.format("v%d-%d", i, j));
+                vxs.add(vx);
+
+                links.add(l(parent, vx));
+            }
         }
 
         return new TGraph(vxs, links);
     }
 
     static void writePointsXY(final TGraph graph, final String fnam, final boolean includeLinks) throws FileNotFoundException {
-        try(final PrintWriter out = new PrintWriter("D:/tmp/lesmiserables-xy.txt")) {
+        try(final PrintWriter out = new PrintWriter(fnam)) {
             graph.vxs.forEach(vx -> {
                 final V v = (V)vx;
                 out.printf("%s,%s,%s\n", v.getLabel().replace(".", ""), v.getX(), v.getY());
@@ -111,7 +112,7 @@ public class TestUtil {
 
             if(includeLinks) {
                 graph.links.forEach(link -> {
-                    out.printf("-,%s,%s", ((V)link.getSource()).getLabel(), ((V)link.getTarget()).getLabel());
+                    out.printf("-,%s,%s\n", ((V)link.getSource()).getLabel(), ((V)link.getTarget()).getLabel());
                 });
             }
         }

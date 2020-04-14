@@ -55,6 +55,7 @@ public class ForceManyBody implements Force {
 
     public ForceManyBody() {
         forceMetas = new DefaultHashMap<>(ForceMeta.class);
+        strength = -30;
     }
 
     @Override
@@ -62,7 +63,7 @@ public class ForceManyBody implements Force {
         this.vxs = vxs;
         final int n = vxs.size();
 
-        strength = -30;
+        System.out.printf("@@FMB strength %s\n", strength);
         strengths = new double[n];
         for(int i=0; i<n; i++) {
             final IVertex v = vxs.get(i);
