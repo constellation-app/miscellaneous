@@ -29,3 +29,5 @@ Glyphs/nbproject/private/*
 
 **/.ipynb_checkpoints/
 **/nbproject/private/
+
+**/__pycache__/

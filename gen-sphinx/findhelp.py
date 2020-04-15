@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 
 import pprint
 
+from parsehelp import parse_html
+
 # Convert NetBeans HelpSet files to Sphinx.
 #
 # Find all the package-info.java files that contain '@HelpSetRegistration'.
@@ -58,7 +60,7 @@ def parse_map(hs, m):
         assert child.tag=='mapID'
         target = child.attrib['target']
         url = child.attrib['url']
-        maps[target] = url
+        maps[target] = hs.with_name(url)
 
     return maps
 
@@ -146,14 +148,20 @@ if __name__=='__main__':
     args = parser.parse_args()
     print(args.indir, args.outdir)
 
+    merged_maps = {}
     toc_list = []
     for hs in helpsets(args.indir):
         # print(hs)
+
         refs = parse_helpset(hs)
         # print(refs)
 
         maps = parse_map(hs, refs['location'])
         # print(maps)
+        for target, url in maps.items():
+            if target in merged_maps:
+                raise ValueError(f'Target {target} already found')
+            merged_maps[target] = url
 
         toc = parse_toc(hs, refs['javax.help.TOCView'])
         # pprint.pprint(toc)
@@ -163,7 +171,17 @@ if __name__=='__main__':
 
     # pprint.pprint(toc_list)
 
-    merged = merge_tocs(toc_list)
-    pprint.pprint(merged, width=132)
+    merged_tocs = merge_tocs(toc_list)
+    pprint.pprint(merged_tocs)
     print()
-    print(merged.keys())
+    print(merged_tocs.keys())
+    print()
+    print(merged_maps)
+
+    for target, url in merged_maps.items():
+        print()
+        print('=' * 79)
+        print(url)
+        print()
+        parse_html(url)
+        # break
