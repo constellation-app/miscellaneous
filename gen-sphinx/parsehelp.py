@@ -213,7 +213,7 @@ class HelpParser(HTMLParser):
             outer_tag = self.top()
             print('@@span', start_tag, text)
             if attr(start_tag, 'class') in ['mono', 'tt']:
-                self.gathertag(outer_tag, f'``{text}``')
+                self.gathertag(outer_tag, f' ``{text}`` ')
             else:
                 self.gathertag(outer_tag, text)
 
