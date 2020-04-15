@@ -14,6 +14,28 @@ from parsehelp import parse_html
 
 ITEMS = '__items__'
 
+INDEX_RST = '''.. Frogger documentation master file, created by
+   {} on {}.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to Frogger's documentation!
+===================================
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Contents:
+
+{}
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+'''
+
 def helpsets(dir):
     """Yield NetBeans HelpSet marker files."""
 
@@ -178,10 +200,26 @@ if __name__=='__main__':
     print()
     print(merged_maps)
 
+    pages = []
     for target, url in merged_maps.items():
         print()
         print('=' * 79)
         print(url)
         print()
-        parse_html(url)
+        rest = parse_html(url)
+
+        urlp = Path(url)
+        restfile = (args.outdir / urlp.name).with_suffix('.rst')
+        print(restfile)
+        with open(restfile, 'w', encoding='utf8') as f:
+            f.write(rest)
+
+        # if urlp.name.startswith('chinese'):
+        #     print(rest)
+        #     break
         # break
+
+        pages.append(f'    pages/{restfile.name}')
+
+    with open(args.outdir / 'index.rst', 'w') as f:
+        print(INDEX_RST.format('this', 'that date', '\n'.join(pages)), file=f)

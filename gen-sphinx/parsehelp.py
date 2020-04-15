@@ -23,7 +23,6 @@ class ParseError(ValueError):
     pass
 
 def attr(tag, key):
-    # print(f'ATTRS: {tag.attrs}')
     for k, v in tag.attrs:
         if k==key:
             return v
@@ -83,13 +82,13 @@ class HelpParser(HTMLParser):
     def gathertext(self, s):
         """Gather text into the ReST buffer."""
 
-        print(s, file=self.buf)
+        print(s, file=self.buf, end='')
 
     def gathertag(self, tag, s):
         """Gather text into the specified tag."""
 
         gather = self.gather[tag.tag]
-        print(s, file=gather)
+        print(s, file=gather, end='')
 
     def get_rest(self):
         self.buf.seek(0)
@@ -106,7 +105,7 @@ class HelpParser(HTMLParser):
             #
             self.gather[tag.tag] = []
         elif tag.tag=='hr':
-            self.gathertext('----\n')
+            self.gathertext('----\n\n')
         # elif tag.tag in ['dd', 'dt', 'li']:
         #     # A new list item.
         #     #
@@ -151,7 +150,6 @@ class HelpParser(HTMLParser):
         if tag!=start_tag.tag:
             raise ParseError(f'End tag "{tag}" != stacked tag {start_tag}')
 
-        print('@@endtag', tag, self.gather[tag])
         if tag in ['dl', 'ol', 'ul']:
             # Collect the list of items.
             #
@@ -163,6 +161,7 @@ class HelpParser(HTMLParser):
             text = self.gather[tag]
             text.seek(0)
             text = text.read()
+            print('@@endtag', tag, repr(text))
 
         if tag=='a':
             href = attr(start_tag, 'href')
@@ -170,15 +169,21 @@ class HelpParser(HTMLParser):
             self.gathertag(outer_tag, f'`{text} <{href}>_')
 
         elif tag in ['caption', 'div', 'p']:
-            self.gathertext(f'{text}\n')
+            self.gathertext(f'{text}\n\n')
 
         elif tag=='dl':
-            indent = ''
+            # print('@@endtag dl', items)
+            # import fred
+            indent, pad = ('', '')
             for item in items:
-                self.gathertext(f'{indent}{item}')
-                indent = '  ' if indent=='' else ''
+                self.gathertext(f'{indent}{item}{pad}\n')
+                indent, pad = ('  ', '\n') if indent=='' else ('', '')
 
-        elif tag in ['font', 'span', 'strong']:
+        elif tag in ['em', 'strong']:
+            outer_tag = self.top()
+            self.gathertag(outer_tag, f'*{text}* ')
+
+        elif tag in ['font', 'strong']:
             outer_tag = self.top()
             self.gathertag(outer_tag, text)
 
@@ -187,20 +192,34 @@ class HelpParser(HTMLParser):
             # TODO: sublists
             # TODO: ol vs ul
             #
+            # print('@@endtag', tag, items)
+            indent = '* '
             for item in items:
-                indent = '- '
-                for line in items:
-                    self.gathertext(f'{indent}{line}')
-                    indent = '  '
+                self.gathertext(f'{indent}{item}\n\n')
 
         elif tag=='pre':
-            self.gathertext('::\n')
+            self.gathertext('.. code-block:: text\n')
             for line in text.split('\n'):
-                self.gathertext(f'    {line}\n')
+                self.gathertext(f'  {line.rstrip()}\n')
 
         elif tag in SECTIONS:
-            mup = SECTIONS[tag] * len(text)
-            self.gathertext(f'{text}\n{mup}\n')
+            # We don't need to write the title, it doesn't really belong in the text.
+            #
+            if tag!='title':
+                mup = SECTIONS[tag] * len(text)
+                self.gathertext(f'{text}\n{mup}\n\n')
+
+        elif tag=='span':
+            outer_tag = self.top()
+            print('@@span', start_tag, text)
+            if attr(start_tag, 'class') in ['mono', 'tt']:
+                self.gathertag(outer_tag, f'``{text}``')
+            else:
+                self.gathertag(outer_tag, text)
+
+        elif tag=='sub':
+            outer_tag = self.top()
+            self.gathertag(outer_tag, f'\\ :sub:`{text}`\\ ')
 
         elif tag in ['dd', 'dt', 'li']:
             outer_tag = self.top()
@@ -216,7 +235,7 @@ class HelpParser(HTMLParser):
         elif tag in ['table', 'td', 'th', 'tr']:
             print('-- Ignoring table stuff for now')
 
-        elif tag in ['body', 'center', 'em', 'head', 'html', 'ol', 'script', 'sub', 'tbody', 'thead', 'ul']:
+        elif tag in ['body', 'center', 'head', 'html', 'ol', 'script', 'sub', 'tbody', 'thead', 'ul']:
             # Don't care about these at endtag time.
             #
             pass
@@ -229,9 +248,12 @@ class HelpParser(HTMLParser):
         #
         tag = self.top()
 
-        # Remove any indents.
-        #
-        lines = ' '.join(line.strip() for line in data.split('\n')).strip()
+        if tag and tag.tag=='pre':
+            lines = data
+        else:
+            # Remove any indents.
+            #
+            lines = ' '.join(line.strip() for line in data.split('\n')).strip()
         print(f'DATA : {lines}')
 
         if tag is None:
@@ -247,23 +269,26 @@ class HelpParser(HTMLParser):
         elif tag.tag=='br':
             self.gathertag(tag, '\n')
         elif tag.tag=='em':
-            self.gathertag(tag, f'*{lines}*')
-        elif tag.tag in ['caption', 'center', 'div', 'title', 'h1', 'h2', 'h3', 'h4', 'p', 'pre']:
+            self.gathertag(tag, lines)
+        elif tag.tag in ['caption', 'center', 'div', 'p', 'pre'] or tag.tag in SECTIONS:
             self.gathertag(tag, lines)
         elif tag.tag=='font':
             outer_tag = self.top(-2)
             self.gathertag(outer_tag, f' {lines} ')
         elif tag.tag=='span':
-            outer_tag = self.top(-2)
-            if 'class' in tag.attrs and tag.attrs['class'] in ['mono', 'tt']:
-                self.gathertag(outer_tag, f' ``{lines}`` ')
-            else:
-                self.gathertag(outer_tag, f' {lines} ')
+            self.gathertag(tag, lines)
+            # outer_tag = self.top(-2)
+            # if 'class' in tag.attrs and tag.attrs['class'] in ['mono', 'tt']:
+            #     self.gathertag(outer_tag, f' ``{lines}`` ')
+            # else:
+            #     self.gathertag(outer_tag, f' {lines} ')
         elif tag.tag=='strong':
-            outer_tag = self.top(-2)
-            self.gathertag(outer_tag, f'**{lines}**')
+            # outer_tag = self.top(-2)
+            # self.gathertag(outer_tag, f'**{lines}**')
+            self.gathertag(tag, lines)
         elif tag.tag=='sub':
-            self.gathertag(tag, f'\\ :sub:`{lines}`\\ `')
+            # self.gathertag(tag, f'\\ :sub:`{lines}`\\ `')
+            self.gathertag(tag, lines)
         elif tag.tag=='ul':
             # TODO: ul or ol?
             #
@@ -285,3 +310,5 @@ def parse_html(help_html):
     hp = HelpParser()
     hp.feed(content)
     hp.close()
+
+    return hp.get_rest()
