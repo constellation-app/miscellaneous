@@ -38,12 +38,6 @@ class HelpParser(HTMLParser):
         #
         self.tag_stack = []
 
-        # # For HTML such as "<p><font>abc <em>xxx</em> xyz</font></p>", the <em>
-        # # text doesn't append to the <font> text, it appends to the <p> text.
-        # # Keep track of the most recent appendable text tag.
-        # #
-        # self.text_stack = []
-
         # This where the ReST text is output to.
         #
         self.buf = io.StringIO()
@@ -63,9 +57,6 @@ class HelpParser(HTMLParser):
             self.handle_endtag('li')
 
         self.tag_stack.append(tag)
-
-        # if tag.tag in TEXT_TAGS:
-        #     self.current_tag = tag
 
     def pop(self):
         """Pop and return the top tag from the tag stack.
@@ -97,7 +88,7 @@ class HelpParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         tag = Tag(tag, attrs)
         self.push(tag)
-        print(f'START: {tag}')
+        # print(f'&START: {tag}')
 
         if tag.tag in ['dl', 'ol', 'ul']:
             # Lists are, well, lists.
@@ -119,7 +110,7 @@ class HelpParser(HTMLParser):
             print('** handle img here')
 
     def handle_endtag(self, tag):
-        print(f'END  : {tag}')
+        # print(f'&END  : {tag}')
 
         # If we're closing <html>, I don't care any more.
         # HTML is just broken.
@@ -161,12 +152,12 @@ class HelpParser(HTMLParser):
             text = self.gather[tag]
             text.seek(0)
             text = text.read()
-            print('@@endtag', tag, repr(text))
+            # print('@@endtag', tag, repr(text))
 
         if tag=='a':
             href = attr(start_tag, 'href')
             outer_tag = self.top()
-            self.gathertag(outer_tag, f'`{text} <{href}>_')
+            self.gathertag(outer_tag, f'`{text} <{href}>`_')
 
         elif tag in ['caption', 'div', 'p']:
             self.gathertext(f'{text}\n\n')
@@ -211,9 +202,9 @@ class HelpParser(HTMLParser):
 
         elif tag=='span':
             outer_tag = self.top()
-            print('@@span', start_tag, text)
+            # print('@@span', start_tag, text)
             if attr(start_tag, 'class') in ['mono', 'tt']:
-                self.gathertag(outer_tag, f' ``{text}`` ')
+                self.gathertag(outer_tag, f'``{text}``')
             else:
                 self.gathertag(outer_tag, text)
 
@@ -223,7 +214,7 @@ class HelpParser(HTMLParser):
 
         elif tag in ['dd', 'dt', 'li']:
             outer_tag = self.top()
-            print('@@item', tag, outer_tag)
+            # print('@@item', tag, outer_tag)
             self.gather[outer_tag.tag].append(text)
             # # TODO: ul or ol?
             # #
@@ -248,19 +239,20 @@ class HelpParser(HTMLParser):
         #
         tag = self.top()
 
-        if tag and tag.tag=='pre':
-            lines = data
-        else:
-            # Remove any indents.
-            #
-            lines = ' '.join(line.strip() for line in data.split('\n')).strip()
-        print(f'DATA : {lines}')
+        # if tag and tag.tag=='pre':
+        #     lines = data
+        # else:
+        #     # Remove any indents.
+        #     #
+        #     lines = ' '.join(line.strip() for line in data.split('\n')).strip()
+        lines = data
+        # print(f'&DATA : {lines}')
 
         if tag is None:
             pass
         elif tag.tag=='a':
             self.gathertag(tag, lines)
-        elif tag.tag in ['body', 'dl', 'html', 'head', 'hr', 'img', 'link', 'meta', 'ol', 'tbody', 'thead', 'ul']:
+        elif tag.tag in ['body', 'dl', 'html', 'head', 'hr', 'img', 'link', 'meta', 'ol', 'ul']:
             # Don't care about these tags when handling data.
             #
             pass
@@ -293,14 +285,14 @@ class HelpParser(HTMLParser):
             # TODO: ul or ol?
             #
             pass
-        elif tag.tag in ['table', 'td', 'th', 'tr']:
+        elif tag.tag in ['table', 'tbody', 'td', 'th', 'thead', 'tr']:
             print('-- Ignoring table stuff for now')
         else:
             raise ParseError(f'Unrecognised data tag: {tag}')
 
     def handle_startendtag(self, tag, attrs):
         t = Tag(tag, attrs)
-        print(f'TAG  : {t}')
+        # print(f'&TAG  : {t}')
 
 
 def parse_html(help_html):
