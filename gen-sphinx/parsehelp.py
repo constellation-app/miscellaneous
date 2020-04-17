@@ -114,7 +114,6 @@ class HelpParser(HTMLParser):
 
         if tag.tag=='img':
             self.pop()
-            print('** handle img here')
             src = attr(tag, 'src')
             src2 = src.replace('/', '-').replace('..', '--')
             alt = attr(tag, 'alt')
@@ -195,7 +194,7 @@ class HelpParser(HTMLParser):
 
         elif tag in ['em', 'strong']:
             outer_tag = self.top()
-            self.gathertag(outer_tag, f'*{text}* ')
+            self.gathertag(outer_tag, f'*{text}*')
 
         elif tag in ['font', 'strong']:
             outer_tag = self.top()
