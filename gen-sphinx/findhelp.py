@@ -154,7 +154,10 @@ def merge_tocs(toc_list):
     return toc1
 
 def generate_pages(outdir, merged_tocs, merged_maps):
-    """Generate documentation in a proper directory hierarchy."""
+    """Generate documentation in a proper directory hierarchy.
+
+    This means an index.rst file at eacg level.
+    """
 
     def simple_name(name):
         return ''.join(c if '0'<=c<='9' or 'a'<=c<='z' else '_' for c in name.lower())
@@ -169,9 +172,10 @@ def generate_pages(outdir, merged_tocs, merged_maps):
         ensure_dir(outdir, level)
         if '__items__' in toc:
             for doc in toc['__items__']:
-                in_html = merged_maps[doc[1]]
+                help_id = doc[1]
+                in_html = merged_maps[help_id]
                 out_rst = outdir / level / Path(in_html).with_suffix('.rst').name
-                yield level, category, in_html, out_rst
+                yield level, category, in_html, out_rst, help_id
         for sub_category in toc:
             cat = simple_name(sub_category)
             if sub_category!='__items__':
@@ -179,9 +183,10 @@ def generate_pages(outdir, merged_tocs, merged_maps):
                 sublevel.append(cat)
 
                 # Yield the index of the next level down.
+                # index files don't have matching HTML files or NetBeans helpIds.
                 #
                 sl = '/'.join(sublevel)
-                yield level, category, None, outdir / sl / 'index.rst'
+                yield level, category, None, outdir / sl / 'index.rst', None
 
                 # Recursively yield the next level down.
                 #
@@ -243,26 +248,35 @@ if __name__=='__main__':
     # Keep track of the levels so we can generate them at the end.
     #
     levels = {}
-    pages = []
-    for level, category, in_html, out_rst in generate_pages(args.outdir / 'pages', merged_tocs, merged_maps):
+
+    # We also need a mapping of helpId to help page.
+    # NetBeans code runs on helpIds and we don't want to change that,
+    # so the help service needs to accept a helpId and map it to the correct page.
+    #
+    help_map = {}
+
+    # pages = []
+    for level, category, in_html, out_rst, help_id in generate_pages(args.outdir / 'pages', merged_tocs, merged_maps):
         lc = level,category
         if lc not in levels:
             levels[lc] = []
         levels[lc].append(out_rst)
 
         if in_html:
+            # This is a help .rst file (not a category / index.rst file).
+            #
             rest = parse_html(in_html)
             with open(out_rst, 'w', encoding='utf8') as f:
                 f.write(rest)
 
-        pages.append(f'    pages/{level}/{out_rst.name}')
+        help_map[help_id] = out_rst
+        # pages.append(f'    pages/{level}/{out_rst.name}')
 
-    # Create index.rst at each level.
+    # Create an index.rst at each level.
     # Each index.rst must have a reference to the index files below it.
     #
     now = datetime.datetime.now().isoformat(' ')[:19]
     for (level, category), rst_files in levels.items():
-
         pages = []
         for page in rst_files:
             p = Path(page)
@@ -277,4 +291,11 @@ if __name__=='__main__':
         with open(args.outdir / 'pages' / level / 'index.rst', 'w') as f:
             f.write(contents)
 
-    # pprint.pprint(merged_tocs)
+    # Save the mapping from helpId to page, so NetBeans help knows where to find stuff.
+    #
+    pprint.pprint(help_map)
+    with open(args.outdir / 'pages/help_map.txt', 'w') as f:
+        for help_id, rst in help_map.items():
+            rst = rst.with_suffix('')
+            relative_rst = str(rst.relative_to(args.outdir / 'pages')).replace('\\', '/')
+            print(f'{help_id},{relative_rst}', file=f)
