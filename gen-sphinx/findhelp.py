@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 import xml.etree.ElementTree as ET
+import shutil
 import datetime
 
 import pprint
@@ -265,9 +266,16 @@ if __name__=='__main__':
         if in_html:
             # This is a help .rst file (not a category / index.rst file).
             #
-            rest = parse_html(in_html)
+            rest, resources = parse_html(in_html)
             with open(out_rst, 'w', encoding='utf8') as f:
                 f.write(rest)
+
+            for res_source, res_target in resources:
+                s = in_html.parent / res_source
+                t = out_rst.parent / res_target
+                print(f'Copying resource {s} to {t} ...')
+                shutil.copy(s, t)
+
 
         help_map[help_id] = out_rst
         # pages.append(f'    pages/{level}/{out_rst.name}')
@@ -293,7 +301,7 @@ if __name__=='__main__':
 
     # Save the mapping from helpId to page, so NetBeans help knows where to find stuff.
     #
-    pprint.pprint(help_map)
+    # pprint.pprint(help_map)
     with open(args.outdir / 'pages/help_map.txt', 'w') as f:
         for help_id, rst in help_map.items():
             rst = rst.with_suffix('')

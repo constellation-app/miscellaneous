@@ -23,6 +23,8 @@ class ParseError(ValueError):
     pass
 
 def attr(tag, key):
+    """Retrieve an attribute value from a tag."""
+
     for k, v in tag.attrs:
         if k==key:
             return v
@@ -47,6 +49,11 @@ class HelpParser(HTMLParser):
         # the text until the end tag, and interpret the <i> etc tags as we go.
         #
         self.gather = {}
+
+        # Resources such as images need to be kept with the document.
+        # Keep track tuples of relative (from, to) filenames.
+        #
+        self.resources = []
 
     def push(self, tag):
         """Push a new tag onto the tag stack."""
@@ -108,6 +115,21 @@ class HelpParser(HTMLParser):
         if tag.tag=='img':
             self.pop()
             print('** handle img here')
+            src = attr(tag, 'src')
+            src2 = src.replace('/', '-').replace('..', '--')
+            alt = attr(tag, 'alt')
+            width = attr(tag, 'width')
+            height = attr(tag, 'height')
+
+            img = f'.. image:: {src2}\n'
+            if width and height:
+                img += f'   :width: {width}px\n   :height: {height}px\n'
+            if alt:
+                img += f'   :alt: {alt}\n'
+
+            self.gathertext(f'{img}\n')
+
+            self.resources.append((src, src2))
 
     def handle_endtag(self, tag):
         # print(f'&END  : {tag}')
@@ -160,6 +182,7 @@ class HelpParser(HTMLParser):
             self.gathertag(outer_tag, f'`{text} <{href}>`_')
 
         elif tag in ['caption', 'div', 'p']:
+            text = ' '.join(text.strip().split())
             self.gathertext(f'{text}\n\n')
 
         elif tag=='dl':
@@ -194,6 +217,7 @@ class HelpParser(HTMLParser):
                 self.gathertext(f'  {line.rstrip()}\n')
 
         elif tag in SECTIONS:
+            text = text.strip()
             # We don't need to write the title, it doesn't really belong in the text.
             #
             if tag!='title':
@@ -303,4 +327,4 @@ def parse_html(help_html):
     hp.feed(content)
     hp.close()
 
-    return hp.get_rest()
+    return hp.get_rest(), hp.resources
